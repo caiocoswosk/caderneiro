@@ -119,4 +119,12 @@ nome-da-disciplina/
 
 ---
 
+## ⚠️ Uso Responsável
+
+Este projeto tem **foco pessoal e estudantil**. Os cadernos gerados são para uso próprio como ferramenta de estudo.
+
+**Não compartilhe cadernos** que contenham transcrições, slides ou qualquer material de terceiros (professores, livros, apostilas) sem autorização explícita dos detentores dos direitos. O fato de o conteúdo ter sido processado por IA não altera a titularidade do material original.
+
+---
+
 *Feito para quem aprende de forma não-linear, em ambientes não-padronizados, com uma cabeça que não para.*
