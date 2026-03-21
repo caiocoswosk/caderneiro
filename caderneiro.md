@@ -484,7 +484,7 @@ python3 .temp/push_notion.py conteudos/<arquivo>.md
 
 O script lê o `notion_id` do frontmatter, apaga blocos existentes e reenvia tudo corretamente em chunks de 100.
 
-> **Raiz do bug:** A API Notion exige `table.children` dentro do objeto `table`, não no nível raiz do bloco. O `notion-md-sync` coloca no nível errado.
+> **Raiz do bug:** A API Notion exige que blocos aninhados coloquem seus filhos **dentro do objeto do tipo**, não na raiz. Isso afeta `table` (linhas) e `toggle` (conteúdo): use `table.children` e `toggle.children`. O `notion-md-sync` coloca no nível errado em ambos os casos.
 
 **A.4 — Atualizações subsequentes**
 
