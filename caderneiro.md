@@ -11,7 +11,9 @@ Um **caderno** é o repositório de conhecimento de uma disciplina. Ele centrali
 **Estrutura de um caderno:**
 ```
 nome-da-disciplina/
-├── CLAUDE.md          ← contexto + mapa de operações (lean, ≤ 100 linhas)
+├── CLAUDE.md          ← contexto + mapa de operações (Claude Code)
+├── AGENTS.md          ← idem, para OpenCode (gerado se ferramenta = OpenCode ou Ambas)
+├── opencode.json      ← carrega _padroes.md automaticamente (OpenCode)
 ├── instrucoes/        ← procedimentos por operação, carregados sob demanda
 ├── conteudos/         ← conteúdo processado, um arquivo por tópico
 │   └── 1-topico.md
@@ -59,7 +61,7 @@ As operações **Transcrever aula**, **Processar aula**, **Gerar imagens** e **E
 
 ### 🎓 Propósito
 
-O **Caderneiro** é um sistema agnóstico para criar e operar cadernos acadêmicos — repositórios de conhecimento por disciplina. Ele gera instruções detalhadas (CLAUDE.md + `instrucoes/`) adaptadas a:
+O **Caderneiro** é um sistema agnóstico para criar e operar cadernos acadêmicos — repositórios de conhecimento por disciplina. Ele gera instruções detalhadas (`CLAUDE.md` e/ou `AGENTS.md` + `instrucoes/`) adaptadas a:
 
 - **Diferentes tipos de curso:** Técnico, Teórico, Híbrido
 - **Diferentes plataformas:** Notion, Obsidian, GitHub, LaTeX
@@ -83,7 +85,8 @@ O **Caderneiro** é um sistema agnóstico para criar e operar cadernos acadêmic
 ### 📊 Resultados Esperados
 
 Ao final do questionário, o **caderno da disciplina** estará pronto:
-- ✅ `CLAUDE.md` lean com contexto e mapa de operações
+- ✅ `CLAUDE.md` e/ou `AGENTS.md` lean com contexto e mapa de operações (conforme ferramenta)
+- ✅ `opencode.json` configurado (se ferramenta = OpenCode ou Ambas)
 - ✅ `instrucoes/` com os procedimentos ativos para a disciplina
 - ✅ Padrões de qualidade configurados para o contexto específico
 
@@ -100,7 +103,7 @@ flowchart TD
     B -->|Não| C[Criar caderno]
     C --> C1["Escolher localização<br/>cadernos/ ou caminho externo"]
     C1 --> C2["Fornecer ementa<br/>ou responder questionário"]
-    C2 --> C3["Caderno gerado<br/>CLAUDE.md + instrucoes/"]
+    C2 --> C3["Caderno gerado<br/>CLAUDE.md/AGENTS.md + instrucoes/"]
 
     B -->|Sim| D["Abrir caderno<br/>no agente"]
 
@@ -146,7 +149,9 @@ flowchart TD
 **Se o curso possui Conteúdo Programático:**
 ```
 caderno-da-disciplina/
-├── CLAUDE.md                              ← Lean: contexto + mapa de operações (≤ 100 linhas)
+├── CLAUDE.md                              ← Lean: contexto + mapa de operações (Claude Code)
+├── AGENTS.md                              ← idem, para OpenCode (se ferramenta = OpenCode ou Ambas)
+├── opencode.json                          ← carrega _padroes.md automaticamente (OpenCode)
 ├── instrucoes/
 │   ├── _padroes.md                        ← Padrões compartilhados (formatação, exercícios, glossário)
 │   ├── transcrever-aula.md                ← Operação: fotos do quadro → transcricao.md
@@ -166,7 +171,9 @@ caderno-da-disciplina/
 **Se o curso NÃO possui Conteúdo Programático:**
 ```
 caderno-da-disciplina/
-├── CLAUDE.md                              ← Lean: contexto + mapa de operações (≤ 100 linhas)
+├── CLAUDE.md                              ← Lean: contexto + mapa de operações (Claude Code)
+├── AGENTS.md                              ← idem, para OpenCode (se ferramenta = OpenCode ou Ambas)
+├── opencode.json                          ← carrega _padroes.md automaticamente (OpenCode)
 ├── instrucoes/
 │   ├── _padroes.md                        ← Padrões compartilhados
 │   ├── transcrever-aula.md                ← Operação: fotos do quadro → transcricao.md
@@ -191,21 +198,22 @@ caderno-da-disciplina/
 ### ⚠️ Conceitos Importantes
 
 **Caderno:**
-- **Caderno** = a pasta da disciplina com todo o seu conteúdo: `CLAUDE.md` + `instrucoes/` + `conteudos/` + `aulas/`
+- **Caderno** = a pasta da disciplina com todo o seu conteúdo: `CLAUDE.md` e/ou `AGENTS.md` + `instrucoes/` + `conteudos/` + `aulas/`
 - Cada disciplina tem exatamente um caderno
 - O caderno é criado pela operação **Criar caderno** e cresce incrementalmente a cada aula processada
 
 **IMUTÁVEL vs INCREMENTAL:**
 
-- **CLAUDE.md = IMUTÁVEL + LEAN**
+- **CLAUDE.md / AGENTS.md = IMUTÁVEL + LEAN**
   - Criado uma vez no início, nunca modificado após criação
   - Máximo ~100 linhas: apenas contexto da disciplina + mapa de operações
   - Aponta para `instrucoes/` — o agente lê o arquivo de operação sob demanda
-  - Se precisar mudar: criar novo CLAUDE.md em nova versão
+  - `CLAUDE.md` para Claude Code, `AGENTS.md` para OpenCode, ambos se ferramenta = Ambas
+  - Se precisar mudar: criar novo arquivo em nova versão
 
 - **instrucoes/_padroes.md = IMUTÁVEL**
   - Padrões compartilhados por todas as operações (formatação, exercícios, glossário, checklist)
-  - Criado junto com o CLAUDE.md
+  - Criado junto com o `CLAUDE.md` e/ou `AGENTS.md`
 
 - **instrucoes/[operacao].md = IMUTÁVEL**
   - Um arquivo por operação disponível (ex: `processar-aula.md`, `transcrever-aula.md`)
@@ -260,28 +268,54 @@ B) Modificar — quero alterar as configurações do caderno (público-alvo, mó
 
 Usar quando o caderneiro evoluiu (novos módulos, procedimentos revisados, padrões atualizados) e o usuário quer que o caderno existente reflita essas melhorias.
 
-**Passo 1 — Comparação de arquivos de contexto e instrução**
+**Passo 1a — Arquivos de contexto**
 
-Verificar primeiro os arquivos de contexto do caderno conforme a ferramenta configurada (`{{FERRAMENTA}}`):
+Verificar os arquivos de contexto do caderno conforme a ferramenta configurada (`{{FERRAMENTA}}`):
 - `CLAUDE.md`: deve existir se `{{FERRAMENTA}} == CLAUDE_CODE` ou `AMBAS`
 - `AGENTS.md`: deve existir se `{{FERRAMENTA}} == OPENCODE` ou `AMBAS`
 - `opencode.json`: deve existir se `{{FERRAMENTA}} == OPENCODE` ou `AMBAS`
 
-Para cada arquivo ausente ou desatualizado, perguntar se deve ser criado/atualizado.
+Para cada arquivo ausente, perguntar se deve ser criado.
 
-Em seguida, comparar cada arquivo em `instrucoes/` do caderno com a versão atual equivalente no caderneiro. Para cada arquivo que divergir:
+---
 
+**Passo 1b — Operações ausentes**
+
+Comparar os arquivos presentes em `instrucoes/` com o conjunto de operações padrão que todo caderno deve ter:
+
+| Arquivo | Condição |
+|---------|----------|
+| `instrucoes/_padroes.md` | sempre |
+| `instrucoes/processar-aula.md` | sempre |
+| `instrucoes/gerar-imagens.md` | sempre |
+| `instrucoes/exportar-conteudo.md` | sempre |
+| `instrucoes/transcrever-aula.md` | se módulo de transcrição ativo |
+
+Para cada arquivo ausente:
+```
+⚠️ instrucoes/[arquivo].md — ausente
+   Esta operação foi adicionada ao caderneiro após a criação deste caderno.
+   Deseja criar este arquivo? (Sim / Não)
+```
+
+---
+
+**Passo 1c — Alinhamento de conteúdo**
+
+Para cada arquivo presente em `instrucoes/`, ler seu conteúdo e compará-lo com a especificação correspondente no caderneiro. Identificar divergências conceituais: funcionalidades novas, regras alteradas, seções ausentes — não diff literal de texto.
+
+Para cada arquivo que divergir:
 ```
 📄 instrucoes/[arquivo].md
-   Situação: versão do caderno difere da versão atual do caderneiro
+   Situação: versão do caderno difere da especificação atual do caderneiro
    Principais diferenças: [resumo do que mudou]
 
-   Deseja atualizar este arquivo? (Sim / Não / Ver diff completo)
+   Deseja atualizar este arquivo? (Sim / Não / Ver detalhes)
 ```
 
-- Se **Sim**: substituir pelo arquivo atualizado do caderneiro
-- Se **Não**: manter a versão atual do caderno
-- Se **Ver diff**: mostrar as diferenças detalhadas antes de decidir
+- Se **Sim**: reescrever o arquivo com base na especificação atual do caderneiro, preservando personalizações específicas da disciplina
+- Se **Não**: manter a versão atual
+- Se **Ver detalhes**: detalhar as divergências antes de decidir
 
 **Passo 2 — Relatório de atualização**
 
@@ -379,7 +413,7 @@ Exibir o tutorial de setup da plataforma escolhida (ver abaixo) e, ao final, sal
   }
 }
 ```
-> ⚠️ Adicionar `exportar.json` ao `.gitignore` do caderno — contém referências a tokens/paths sensíveis.
+> ⚠️ Adicionar `exportar.json` e `.env` ao `.gitignore` do caderno — contêm tokens sensíveis.
 
 ---
 
@@ -387,32 +421,90 @@ Exibir o tutorial de setup da plataforma escolhida (ver abaixo) e, ao final, sal
 
 #### A) Notion
 
-1. Para cada arquivo em `conteudos/imagens/`, fazer upload via Notion File Upload API:
-   ```
-   POST https://api.notion.com/v1/files
-   Authorization: Bearer $NOTION_TOKEN
-   Content-Type: multipart/form-data
-   body: arquivo de imagem
-   ```
-   Guardar o mapeamento `caminho_local → url_notion` retornado.
+> **Dependências:** `notion-md-sync` (go-notion-md-sync) + `.temp/push_notion.py` (gerado no setup).
 
-2. Criar cópias temporárias dos `.md` de `conteudos/`, substituindo cada caminho local pela URL do Notion correspondente.
+**A.1 — Primeiro uso: setup do notion-md-sync**
 
-3. Sincronizar as cópias com `go-notion-md-sync push`.
+Antes de rodar qualquer comando, perguntar ao usuário:
 
-4. Descartar as cópias temporárias. Os arquivos originais em `conteudos/` permanecem inalterados com caminhos locais.
+```
+"Preciso de duas informações para configurar a exportação para o Notion:
 
-**Tutorial de setup Notion:**
+1. Seu Internal Integration Token (obtido em https://www.notion.so/profile/integrations)
+   Exemplo: ntn_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+2. O ID da página pai no Notion onde o conteúdo será publicado
+   (são os 32 caracteres após o último "/" na URL da página)
+   Exemplo: 3258a0cf609d80479960f7e17498cdd7"
+```
+
+Com os dados em mãos, pedir para o usuário rodar:
+
+```
+! cd <caminho-do-caderno> && notion-md-sync init
+```
+
+⚠️ **Atenção ao token durante o init:** O Notion gera tokens com prefixo `ntn_`, mas o `notion-md-sync` só aceita `secret_`. Durante o `init`, orientar o usuário a digitar o token com o prefixo trocado:
+
+- Token original: `ntn_XXXXXXXXXX...`
+- Token a digitar no init: `secret_XXXXXXXXXX...` ← só troca o prefixo, o resto é igual
+
+Quando o init perguntar **"Markdown directory"**, responder: `conteudos`
+
+Após o init, **corrigir o `.env`** trocando `secret_` de volta para `ntn_`:
+```
+NOTION_MD_SYNC_NOTION_TOKEN=ntn_XXXXXXXXXX...
+```
+
+**A.2 — Upload das imagens**
+
+Para cada arquivo em `conteudos/imagens/`, fazer upload via Notion File Upload API (2 passos):
+
+```
+# Passo 1 — criar objeto de upload:
+POST https://api.notion.com/v1/file_uploads
+Body: {"filename": "nome.png", "content_type": "image/png"}
+Resposta: {"id": "...", "upload_url": "https://..."}
+
+# Passo 2 — enviar o arquivo (usar a upload_url retornada, não construir manualmente):
+POST <upload_url>
+Form-data: file=@caminho/imagem.png;type=image/png
+```
+
+Salvar o mapeamento `nome_arquivo → file_upload_id` em `/tmp/img_notion_map.json`.
+
+**A.3 — Push do conteúdo**
+
+⚠️ **Não usar `notion-md-sync push` diretamente** — ele tem um bug onde envia blocos de tabela sem os filhos, causando erro 400 da API Notion. Usar o script customizado em `.temp/push_notion.py`.
+
+```bash
+source .env && export NOTION_MD_SYNC_NOTION_TOKEN
+python3 .temp/push_notion.py conteudos/<arquivo>.md
+```
+
+O script lê o `notion_id` do frontmatter, apaga blocos existentes e reenvia tudo corretamente em chunks de 100.
+
+> **Raiz do bug:** A API Notion exige `table.children` dentro do objeto `table`, não no nível raiz do bloco. O `notion-md-sync` coloca no nível errado.
+
+**A.4 — Atualizações subsequentes**
+
+O `notion_id` fica salvo no frontmatter do `.md` após o primeiro push. Para atualizar:
+
+```bash
+source .env && export NOTION_MD_SYNC_NOTION_TOKEN
+python3 .temp/push_notion.py conteudos/<arquivo>.md
+```
+
+**Tutorial de setup Notion (primeira vez):**
 ```
 1. Acesse https://www.notion.so/profile/integrations
 2. Clique em "New integration" → nomeie (ex: "caderneiro")
-3. Copie o "Internal Integration Token"
+3. Copie o "Internal Integration Token" (começa com ntn_)
 4. Abra a página do Notion onde o conteúdo será publicado
 5. Clique em "..." → "Connect to" → selecione sua integration
 6. Copie o ID da página da URL (32 caracteres após o último "/")
 7. Instale go-notion-md-sync: https://github.com/byvfx/go-notion-md-sync
-8. Execute: export NOTION_TOKEN="seu_token"
-9. Informe o page_id ao agente para salvar em exportar.json
+8. Informe token e page_id ao agente ANTES de rodar qualquer comando
 ```
 
 ---
@@ -481,7 +573,7 @@ git push
 ```
 "Onde deseja criar o caderno?"
 
-A) Dentro do caderneiro — caderneiros/cadernos/[nome-disciplina]/
+A) Dentro do caderneiro — caderneiro/cadernos/[nome-disciplina]/
    Os cadernos ficam privados (pasta cadernos/ está no .gitignore).
 
 B) Em outro diretório
@@ -935,7 +1027,7 @@ Valores: `true | false`
 #### 4.8. Módulo de CONSISTÊNCIA NA GERAÇÃO
 
 ```
-[x] Incluir Módulo de Consistência na Geração
+✅ Módulo de Consistência na Geração (ativado por padrão)
 
 📦 O que este módulo adiciona:
   ✓ Regras para prevenir erros recorrentes na geração de conteúdo
@@ -982,7 +1074,7 @@ Valores: `true | false`
 **Regra C1: Indexação coerente com a linguagem do curso**
 ```
 Todos os traces de execução, exemplos e exercícios devem usar
-a mesma convenção de indexação da linguagem {{LINGUAGENS}}:
+a mesma convenção de indexação da linguagem do curso (conforme identificada nos materiais):
   • C, Java, Python → base-0 (arrays começam em 0)
   • Pascal, Lua → base-1 (arrays começam em 1)
   • Pseudocódigo puro → definir explicitamente no início do documento
@@ -1427,9 +1519,7 @@ Armazenar em: {{INCLUIR_CONTEXTO_HISTORICO}}
   {{#if LINGUAGENS}}
   • Linguagens: {{LINGUAGENS}}
   {{/if}}
-  {{#if FOCO_ALGORITMOS}}
-  • Foco em algoritmos: Sim
-  {{/if}}
+
 
 🖥️ PLATAFORMA: {{PLATAFORMA}}
 
@@ -2308,9 +2398,9 @@ Conteúdo
 
 ## 7️⃣ PROCEDIMENTO DE GERAÇÃO
 
-### 🔧 Etapas para Gerar CLAUDE.md + instrucoes/
+### 🔧 Etapas para Gerar Arquivos de Contexto + instrucoes/
 
-Quando um usuário completar o questionário, gerar **um conjunto de arquivos** (não apenas um CLAUDE.md):
+Quando um usuário completar o questionário, gerar **um conjunto de arquivos** conforme a ferramenta escolhida (`CLAUDE.md`, `AGENTS.md`, `opencode.json`) + `instrucoes/`:
 
 1. **Coletar todas as variáveis**
 2. **Selecionar template base** (Técnico/Teórico/Híbrido)
@@ -2358,11 +2448,14 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Análise de código (se módulo ativo)
    - Diagramas (se módulo ativo)
 
-   **`instrucoes/[outras-operacoes].md`** (conforme módulos ativos)
-   - Procedimento em 3 etapas
-   - Configuração de `{{TRATAMENTO_VISUAIS_MANUSCRITOS}}`
+   **`instrucoes/gerar-imagens.md`** (sempre gerado):
+   - Regras para grafos (prompt destacado), flowcharts (Mermaid) e estruturas de dados
+   - Paleta de cores, padrões visuais e estrutura de diretórios de imagens
+   - Instruções para uso do script `gerar-imagens.py`
 
-   **`instrucoes/[outras-operacoes].md`** (conforme módulos ativos)
+   **`instrucoes/exportar-conteudo.md`** (sempre gerado):
+   - Verificação de `exportar.json` e setup lazy por plataforma
+   - Procedimento de exportação para Notion, Obsidian, PDF e GitHub
 
 9. **Substituir todas as variáveis** em todos os arquivos gerados
 10. **Validar com checklist**
@@ -2475,6 +2568,6 @@ O **Caderneiro** fornece uma estrutura completa para criar e operar cadernos aca
 
 ---
 
-**Versão:** 1.0
-**Última Atualização:** 2026-03-20
+**Versão:** 1.1
+**Última Atualização:** 2026-03-21
 **Licença:** Uso educacional livre

@@ -77,10 +77,11 @@ nome-da-disciplina/
 ├── AGENTS.md           ← contexto lean para OpenCode  (se configurado)
 ├── opencode.json       ← config multi-arquivo OpenCode (se configurado)
 ├── instrucoes/
-│   ├── _padroes.md         ← padrões compartilhados (formatação, exercícios...)
-│   ├── transcrever-aula.md ← operação: fotos do quadro → transcricao.md
-│   ├── processar-aula.md   ← operação: materiais da aula → conteúdo estruturado
-│   └── gerar-imagens.md    ← operação: prompts → imagens
+│   ├── _padroes.md             ← padrões compartilhados (formatação, exercícios...)
+│   ├── transcrever-aula.md     ← operação: fotos do quadro → transcricao.md
+│   ├── processar-aula.md       ← operação: materiais da aula → conteúdo estruturado
+│   ├── gerar-imagens.md        ← operação: prompts → imagens
+│   └── exportar-conteudo.md    ← operação: sincronizar com plataforma de estudo
 ├── conteudos/
 │   └── 1-topico.md         ← conteúdo gerado, um arquivo por tópico
 └── aulas/
@@ -93,7 +94,7 @@ nome-da-disciplina/
 
 | Ferramenta | Arquivo de contexto | Multi-arquivo |
 |------------|--------------------|----|
-| [Claude Code](https://claude.ai/code) | `CLAUDE.md` | via `.claude/rules/` |
+| [Claude Code](https://claude.ai/code) | `CLAUDE.md` | via `instrucoes/` (on-demand) |
 | [OpenCode](https://opencode.ai) | `AGENTS.md` | via `opencode.json` |
 
 ---
