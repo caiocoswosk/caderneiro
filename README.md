@@ -52,6 +52,7 @@ O Caderneiro é um conjunto de instruções para agentes de IA (Claude Code ou O
 - **Como transcrever uma aula** — converte fotos do quadro (`capturas/`) em `transcricao.md` com verificação de inconsistências e correção automática
 - **Como processar uma aula** — usa a transcrição, PDFs, código ou qualquer material dentro da pasta da aula para estruturar o conteúdo no arquivo de tópico correspondente
 - **Como gerar imagens** — produz diagramas a partir de prompts gerados durante o processamento
+- **Como exportar o conteúdo** — sincroniza os arquivos gerados com a plataforma de estudo escolhida: Notion (com upload automático de imagens via API), Obsidian, PDF ou GitHub
 
 Tudo a partir de uma conversa com o agente.
 
@@ -116,6 +117,7 @@ nome-da-disciplina/
 | **Transcrever aula** | Converte fotos do quadro em transcrição revisada |
 | **Processar aula** | Transforma qualquer material da pasta da aula (transcrição, PDF, código, imagens) em conteúdo estruturado |
 | **Gerar imagens** | Produz imagens de diagramas a partir dos prompts e remove os indicadores de pendência nos conteúdos |
+| **Exportar conteúdo** | Sincroniza `conteudos/` + imagens com Notion, Obsidian, PDF ou GitHub |
 
 ---
 

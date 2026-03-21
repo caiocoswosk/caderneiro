@@ -30,12 +30,13 @@ nome-da-disciplina/
 | **Transcrever aula** | Converter `capturas/` ou `capturas.pdf` em `transcricao.md` |
 | **Processar aula** | Integrar ao arquivo de tópico qualquer material em `aulas/aula-XX/` — transcrição, PDF, código, imagens ou combinação deles |
 | **Gerar imagens** | Gerar imagens a partir dos prompts nos arquivos `.md` e remover os indicadores de pendência nos conteúdos |
+| **Exportar conteúdo** | Sincronizar `conteudos/` + imagens com a plataforma de estudo (Notion, Obsidian, PDF, GitHub) |
 
 **Onde ficam os cadernos:**
 - **Dentro do caderneiro:** `caderneiro/cadernos/nome-disciplina/` — pasta `cadernos/` está no `.gitignore`; seus cadernos ficam privados
 - **Fora do caderneiro:** qualquer caminho absoluto informado pelo usuário
 
-As operações **Transcrever aula**, **Processar aula** e **Gerar imagens** são executadas a partir dos arquivos `instrucoes/` do caderno da disciplina.
+As operações **Transcrever aula**, **Processar aula**, **Gerar imagens** e **Exportar conteúdo** são executadas a partir dos arquivos `instrucoes/` do caderno da disciplina.
 > Operações adicionais podem existir conforme os módulos ativados no caderno.
 
 ---
@@ -348,6 +349,128 @@ Relatório ao final:
 Reescrever o `CLAUDE.md` e os arquivos de `instrucoes/` afetados com as alterações aprovadas.
 
 ---
+
+### 📤 Operação: EXPORTAR CONTEÚDO
+
+Sincroniza os arquivos de `conteudos/` + imagens com a plataforma de estudo escolhida. A configuração é feita uma única vez por caderno e salva em `exportar.json`.
+
+**Passo 1 — Verificar configuração**
+
+Checar se `exportar.json` existe na raiz do caderno. Se não existir, perguntar:
+
+```
+"Para qual plataforma deseja exportar o conteúdo?"
+
+A) Notion
+B) Obsidian
+C) PDF
+D) GitHub / GitHub Pages
+```
+
+Exibir o tutorial de setup da plataforma escolhida (ver abaixo) e, ao final, salvar `exportar.json`.
+
+**`exportar.json` (salvo na raiz do caderno, nunca versionado):**
+```json
+{
+  "plataforma": "NOTION",
+  "notion": {
+    "page_id": "ID_DA_PAGINA_PAI",
+    "token_env": "NOTION_TOKEN"
+  }
+}
+```
+> ⚠️ Adicionar `exportar.json` ao `.gitignore` do caderno — contém referências a tokens/paths sensíveis.
+
+---
+
+**Passo 2 — Executar exportação**
+
+#### A) Notion
+
+1. Para cada arquivo em `conteudos/imagens/`, fazer upload via Notion File Upload API:
+   ```
+   POST https://api.notion.com/v1/files
+   Authorization: Bearer $NOTION_TOKEN
+   Content-Type: multipart/form-data
+   body: arquivo de imagem
+   ```
+   Guardar o mapeamento `caminho_local → url_notion` retornado.
+
+2. Criar cópias temporárias dos `.md` de `conteudos/`, substituindo cada caminho local pela URL do Notion correspondente.
+
+3. Sincronizar as cópias com `go-notion-md-sync push`.
+
+4. Descartar as cópias temporárias. Os arquivos originais em `conteudos/` permanecem inalterados com caminhos locais.
+
+**Tutorial de setup Notion:**
+```
+1. Acesse https://www.notion.so/profile/integrations
+2. Clique em "New integration" → nomeie (ex: "caderneiro")
+3. Copie o "Internal Integration Token"
+4. Abra a página do Notion onde o conteúdo será publicado
+5. Clique em "..." → "Connect to" → selecione sua integration
+6. Copie o ID da página da URL (32 caracteres após o último "/")
+7. Instale go-notion-md-sync: https://github.com/byvfx/go-notion-md-sync
+8. Execute: export NOTION_TOKEN="seu_token"
+9. Informe o page_id ao agente para salvar em exportar.json
+```
+
+---
+
+#### B) Obsidian
+
+```bash
+cp -r conteudos/* {{CAMINHO_VAULT}}/
+```
+
+**Tutorial de setup Obsidian:**
+```
+1. Abra o Obsidian e vá em Configurações → Sobre
+2. O caminho da vault aparece em "Vault path"
+3. Informe este caminho ao agente para salvar em exportar.json
+```
+
+---
+
+#### C) PDF (pandoc)
+
+```bash
+for f in conteudos/*.md; do
+  pandoc "$f" -o "${f%.md}.pdf" --resource-path=conteudos/imagens
+done
+```
+
+PDFs gerados na mesma pasta dos `.md` correspondentes.
+
+**Tutorial de setup:**
+```bash
+# Ubuntu/Debian
+sudo apt install pandoc
+
+# macOS
+brew install pandoc
+
+# Verificar
+pandoc --version
+```
+
+---
+
+#### D) GitHub / GitHub Pages
+
+```bash
+git add conteudos/
+git commit -m "conteúdo: sincronizar [$(date +%Y-%m-%d)]"
+git push
+```
+
+**Tutorial de setup GitHub:**
+```
+1. Crie um repositório privado no GitHub para o caderno
+2. Na pasta do caderno: git init && git remote add origin URL_DO_REPO
+3. Configure autenticação (SSH key ou token)
+4. Informe a URL do remote ao agente para salvar em exportar.json
+```
 
 ---
 
