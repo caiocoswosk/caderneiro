@@ -65,7 +65,8 @@ caderneiro/
 ├── README.md                        ← este arquivo
 ├── CLAUDE.md                        ← ponto de entrada para Claude Code
 ├── AGENTS.md                        ← ponto de entrada para OpenCode
-├── caderneiro.md                    ← guia completo de operações
+├── caderneiro.md                    ← visão geral + tabela de dispatch
+├── instrucoes/                      ← procedimentos por operação (carregados sob demanda)
 ├── .claude/commands/caderneiro.md   ← comando /caderneiro (Claude Code)
 └── cadernos/                        ← cadernos criados aqui ficam no .gitignore
 ```
