@@ -1,3 +1,4 @@
+<!-- modelo: SIMPLES -->
 # Criar Caderno
 
 Para criar um caderno novo, seguir estas fases em ordem:

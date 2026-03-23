@@ -1,3 +1,4 @@
+<!-- modelo: MEDIO -->
 # Atualizar Caderno
 
 Usar quando o caderneiro evoluiu (novos módulos, procedimentos revisados, padrões atualizados) e o usuário quer que o caderno existente reflita essas melhorias.
@@ -49,6 +50,34 @@ Q: "instrucoes/[arquivo].md — ausente (adicionado ao caderneiro após criaçã
    A) ✅ Sim — criar agora
    B) ❌ Não — manter ausente
 ```
+
+**Passo 1b.1 — Hints de modelo**
+
+Para cada arquivo de operação presente em `instrucoes/`, verificar se contém `<!-- modelo: NIVEL -->` na primeira linha. Verificar também se `instrucoes/_padroes.md` contém a seção "Modelos Recomendados".
+
+Se ausentes, **→ Usar AskUserQuestion:**
+```
+Q: "Hints de orquestração de modelos não encontrados neste caderno. Deseja adicionar?"
+   A) ✅ Sim — adicionar hints e seção de modelos conforme especificação atual
+   B) ❌ Não — manter sem orquestração de modelos
+```
+
+Se **Sim**: inserir `<!-- modelo: NIVEL -->` na primeira linha de cada arquivo de operação (conforme tabela em `instrucoes/modelos.md` do caderneiro) e adicionar seção "Modelos Recomendados" em `_padroes.md`.
+
+---
+
+**Passo 1b.2 — Commands com verificação de modelo**
+
+Para cada command file em `.claude/commands/` e/ou `.opencode/commands/` (conforme `{{FERRAMENTA}}`), verificar se contém a instrução de verificação de modelo (buscar por "modelo ativo" ou "nível do modelo" no conteúdo do arquivo).
+
+Se ausente, **→ Usar AskUserQuestion:**
+```
+Q: "Os commands deste caderno não verificam o modelo antes de executar. Deseja atualizar?"
+   A) ✅ Sim — atualizar commands com verificação de modelo
+   B) ❌ Não — manter commands atuais
+```
+
+Se **Sim**: reescrever cada command conforme o template atualizado em `instrucoes/geracao.md` do caderneiro (Etapa 9, seção "Skills individuais").
 
 ---
 

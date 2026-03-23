@@ -1,3 +1,4 @@
+<!-- modelo: SIMPLES -->
 # Modificar Caderno
 
 Usar quando o usuário quer alterar as configurações do caderno (não relacionado a atualizações do caderneiro).

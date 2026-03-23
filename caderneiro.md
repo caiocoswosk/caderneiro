@@ -63,6 +63,7 @@ Ao receber uma solicitação, identifique a operação e leia o arquivo correspo
 | Módulos opcionais (código, diagramas, etc.) | `instrucoes/modulos.md` |
 | Adaptadores de plataforma (Notion, Obsidian, etc.) | `instrucoes/adaptadores-plataforma.md` |
 | Procedimento de geração + checklist | `instrucoes/geracao.md` |
+| Orquestração de modelos por operação | `instrucoes/modelos.md` |
 
 ---
 
@@ -107,6 +108,20 @@ Ao receber uma solicitação, identifique a operação e leia o arquivo correspo
 
 ---
 
-**Versão:** 2.0
+## Orquestração de Modelos
+
+Cada operação tem um nível de complexidade recomendado (**SIMPLES**, **MEDIO**, **COMPLEXO**) que mapeia para modelos específicos conforme o provedor em uso. A referência completa está em `instrucoes/modelos.md`.
+
+**Como funciona:**
+- Cada arquivo em `instrucoes/` contém um comentário `<!-- modelo: NIVEL -->` na primeira linha
+- Ao iniciar uma operação, o agente lê o nível e consulta `instrucoes/modelos.md`
+- **Modelo superior ao recomendado** (ex: opus para SIMPLES): sugere troca e **para — aguarda decisão** do usuário antes de prosseguir (evita gasto desnecessário de tokens)
+- **Modelo inferior ao recomendado**: sugere troca mas prossegue normalmente
+- **Modelo compatível**: prossegue sem comentários
+- O agente sempre recomenda um modelo **do mesmo provedor** que o modelo ativo
+
+---
+
+**Versão:** 2.1
 **Última Atualização:** 2026-03-23
 **Licença:** Uso educacional livre

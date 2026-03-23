@@ -1,10 +1,11 @@
+<!-- modelo: COMPLEXO -->
 # Procedimento de Geração
 
 ### 🔧 Etapas para Gerar Arquivos de Contexto + instrucoes/
 
 Quando um usuário completar o questionário, gerar **um conjunto de arquivos** conforme a ferramenta escolhida (`CLAUDE.md`, `AGENTS.md`, `opencode.json`) + `instrucoes/`:
 
-1. **Coletar todas as variáveis**
+1. **Coletar todas as variáveis** — consultar também `instrucoes/modelos.md` para os níveis de modelo por operação
 2. **Selecionar template base** (Técnico/Teórico/Híbrido) — consultar `instrucoes/templates-base.md`
 3. **Aplicar módulos opcionais** (código, diagramas, exercícios, transcrição, etc.) — consultar `instrucoes/modulos.md`
 4. **Aplicar adaptador de plataforma** (Notion/Obsidian/GitHub/LaTeX) — consultar `instrucoes/adaptadores-plataforma.md`
@@ -42,6 +43,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Sistema de exercícios (se módulo ativo)
    - Glossário (se módulo ativo)
    - Checklist de qualidade
+   - Seção **Modelos Recomendados** — copiar a tabela de tiers de `instrucoes/modelos.md` do caderneiro, incluindo apenas as colunas relevantes à `{{FERRAMENTA}}` (Claude Code e/ou OpenCode). Incluir também as regras de comportamento do agente.
 
    **`instrucoes/transcrever-aula.md`** (se `{{MODULO_TRANSCRICAO}} == true`):
    - Procedimento em 3 etapas
@@ -65,19 +67,53 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Verificação de `exportar.json` e setup lazy por plataforma
    - Procedimento de exportação para Notion, Obsidian, PDF e GitHub
 
-9. **Criar o comando `/caderno`** — gerar `.claude/commands/caderno.md` no caderno com o menu interativo dos processos do dia a dia:
+   **Hints de modelo em cada arquivo de operação gerado:**
+   Inserir `<!-- modelo: NIVEL -->` na **primeira linha** de cada arquivo de instrução, conforme a tabela em `instrucoes/modelos.md`:
+   - `transcrever-aula.md` → `<!-- modelo: MEDIO -->`
+   - `processar-aula.md` → `<!-- modelo: COMPLEXO -->`
+   - `gerar-imagens.md` → `<!-- modelo: SIMPLES -->`
+   - `exportar-conteudo.md` → `<!-- modelo: MEDIO -->`
 
+9. **Criar skills individuais** — gerar comandos em `.claude/commands/` e `.opencode/commands/` (conforme `{{FERRAMENTA}}`):
+
+   **Menu (`menu.md`)** — ambas ferramentas:
    ```markdown
    Apresente ao usuário o menu de operações do caderno usando AskUserQuestion:
 
    Q: "Qual operação deseja realizar?"
-      A) 📝 Transcrever aula — capturas/manuscritos → transcricao.md
-      B) ⚙️ Processar aula — materiais da aula → arquivo de conteúdo
-      C) 🖼️ Gerar imagens — prompts pendentes → conteudos/imagens/
-      D) 📤 Exportar conteúdo — sincronizar com a plataforma de estudo
+      A) 📝 Transcrever aula → execute /transcrever-aula
+      B) ⚙️ Processar aula → execute /processar-aula
+      C) 🖼️ Gerar imagens → execute /gerar-imagens
+      D) 📤 Exportar conteúdo → execute /exportar-conteudo
 
-   Após a seleção, leia a seção correspondente em instrucoes/ e execute a operação.
+   Após a seleção, execute a skill correspondente.
    ```
+
+   **Skills individuais** — uma por operação:
+
+   Claude Code (`.claude/commands/[operacao].md`):
+   ```markdown
+   Leia a primeira linha de `instrucoes/[operacao].md` para extrair o nível do modelo (`<!-- modelo: NIVEL -->`). Consulte `instrucoes/_padroes.md` (seção Modelos Recomendados) para verificar se o modelo ativo corresponde ao nível recomendado. Se o modelo ativo for **superior** ao recomendado, sugira a troca via `/model` e **pare — aguarde a decisão do usuário** antes de prosseguir. Se for inferior, sugira mas prossiga. Se compatível, prossiga sem comentários.
+
+   Em seguida, leia `instrucoes/[operacao].md` por completo e execute a operação.
+   ```
+
+   OpenCode (`.opencode/commands/[operacao].md`):
+   ```yaml
+   ---
+   description: [descrição curta da operação]
+   ---
+   Leia a primeira linha de `instrucoes/[operacao].md` para extrair o nível do modelo (`<!-- modelo: NIVEL -->`). Consulte `instrucoes/_padroes.md` (seção Modelos Recomendados) para verificar se o modelo ativo corresponde ao nível recomendado. Se o modelo ativo for **superior** ao recomendado, sugira a troca via `/models` e **pare — aguarde a decisão do usuário** antes de prosseguir. Se for inferior, sugira mas prossiga. Se compatível, prossiga sem comentários.
+
+   Em seguida, leia `instrucoes/[operacao].md` por completo e execute a operação.
+   ```
+
+   Arquivos a gerar:
+   - `menu.md` — menu interativo
+   - `transcrever-aula.md` (se `{{MODULO_TRANSCRICAO}} == true`)
+   - `processar-aula.md` (sempre)
+   - `gerar-imagens.md` (sempre)
+   - `exportar-conteudo.md` (sempre)
 
    **Fluxos interativos de cada operação do caderno:**
 
@@ -344,6 +380,8 @@ Ao gerar um CLAUDE.md, verificar:
 - [ ] Módulo de Consistência incluído (regras C1-C6) — ativado por padrão
 - [ ] Exemplos apropriados ao tipo de curso
 - [ ] Instruções claras e não ambíguas
+- [ ] Hints `<!-- modelo: NIVEL -->` presentes na primeira linha de todos os arquivos de operação
+- [ ] Seção "Modelos Recomendados" presente em `_padroes.md`
 
 #### Consistência:
 - [ ] Tom de linguagem uniforme
