@@ -479,20 +479,27 @@ Salvar o mapeamento `nome_arquivo → file_upload_id` em `/tmp/img_notion_map.js
 
 ```bash
 source .env && export NOTION_MD_SYNC_NOTION_TOKEN
-python3 .temp/push_notion.py conteudos/<arquivo>.md
+python3 .temp/push_notion.py
 ```
 
-O script lê o `notion_id` do frontmatter, apaga blocos existentes e reenvia tudo corretamente em chunks de 100.
+O script opera sobre **todos** os arquivos em `conteudos/` de uma vez, em ordem alfabética (= ordem numérica pelo prefixo dos arquivos):
+
+1. **Arquiva** todas as páginas existentes (`notion_id` no frontmatter) via `PATCH /pages/{id} {"archived": true}`
+2. **Recria** cada página em ordem, garantindo a sequência correta no Notion
+3. **Remove o `# H1`** do corpo antes de converter — ele já é o título da página, não deve aparecer duplicado
+4. Envia os blocos em chunks de 100 e salva o novo `notion_id` no frontmatter de cada arquivo
+
+> O `notion_id` muda a cada exportação (página nova a cada vez). Isso é esperado e transparente.
 
 > **Raiz do bug:** A API Notion exige que blocos aninhados coloquem seus filhos **dentro do objeto do tipo**, não na raiz. Isso afeta `table` (linhas) e `toggle` (conteúdo): use `table.children` e `toggle.children`. O `notion-md-sync` coloca no nível errado em ambos os casos.
 
 **A.4 — Atualizações subsequentes**
 
-O `notion_id` fica salvo no frontmatter do `.md` após o primeiro push. Para atualizar:
+O mesmo comando re-exporta tudo do zero (arquiva as antigas e recria em ordem):
 
 ```bash
 source .env && export NOTION_MD_SYNC_NOTION_TOKEN
-python3 .temp/push_notion.py conteudos/<arquivo>.md
+python3 .temp/push_notion.py
 ```
 
 **Tutorial de setup Notion (primeira vez):**
@@ -2144,7 +2151,7 @@ A) 📝 Descrição textual detalhada
       Descrevo o conteúdo visual em itálico no corpo do texto.
 
 B) 🎨 Prompt para geração de imagem por IA
-      Gero um bloco de prompt detalhado agrupado ao final do arquivo
+      Gero um bloco de prompt detalhado em `conteudos/prompts/N-nome-topico.md`
       para geração posterior. No ponto do texto, uso referência:
       ![descrição](caminho/para/imagem.png)
 
@@ -2189,7 +2196,7 @@ Antes de transcrever, avaliar criticamente a sequência:
 
 Para cada elemento visual encontrado, aplicar `{{TRATAMENTO_VISUAIS_MANUSCRITOS}}`:
 - No ponto do corpo, inserir descrição e/ou referência de imagem
-- Se opção B ou D: agrupar prompts ao final do arquivo na seção `## 🎨 Prompts para Geração de Imagens`, numerados de 01 em diante
+- Se opção B ou D: salvar os prompts em `conteudos/prompts/N-nome-topico.md` (arquivo separado, **nunca** no arquivo de conteúdo), numerados de 01 em diante — a pasta `conteudos/prompts/` é ignorada na exportação para o Notion
 
 **Passo 4 — Geração do arquivo**
 
@@ -2220,9 +2227,14 @@ Criar (ou sobrescrever) `aulas/aula-XX/{{ARQUIVO_TRANSCRICAO}}` com a estrutura:
 
 ---
 
+```
+
+**Arquivo separado de prompts** (apenas se `{{TRATAMENTO_VISUAIS_MANUSCRITOS}}` == B ou D):
+
+Criar `conteudos/prompts/N-nome-topico.md`:
+```markdown
 ## 🎨 Prompts para Geração de Imagens
 
-[apenas se {{TRATAMENTO_VISUAIS_MANUSCRITOS}} == B ou D]
 [prompts numerados de 01 em diante]
 ```
 
