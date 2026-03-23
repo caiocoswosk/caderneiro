@@ -246,20 +246,18 @@ Quando um usuário solicitar **Criar caderno** (nova disciplina) ou **Modificar 
 
 Executar quando o usuário pedir para atualizar ou modificar um caderno existente — funciona tanto para cadernos em `cadernos/` quanto em caminhos externos.
 
-Primeiro, identificar o caderno a operar:
+Primeiro, identificar o caderno a operar (texto livre):
 ```
 "Qual caderno deseja atualizar/modificar?"
 - Listar cadernos em cadernos/ (se existirem)
 - Ou informar caminho externo
 ```
 
-Em seguida, perguntar a intenção:
-
+Em seguida, **→ Usar AskUserQuestion:**
 ```
-"O que deseja fazer?"
-
-A) Atualizar — o caderneiro foi atualizado e quero propagar as mudanças para este caderno
-B) Modificar — quero alterar as configurações do caderno (público-alvo, módulos, plataforma, etc.)
+Q: "O que deseja fazer?"
+   A) 🔄 Atualizar — propagar melhorias do caderneiro para este caderno
+   B) 🛠️ Modificar — alterar configurações (módulos, plataforma, público-alvo…)
 ```
 
 ---
@@ -275,7 +273,14 @@ Verificar os arquivos de contexto do caderno conforme a ferramenta configurada (
 - `AGENTS.md`: deve existir se `{{FERRAMENTA}} == OPENCODE` ou `AMBAS`
 - `opencode.json`: deve existir se `{{FERRAMENTA}} == OPENCODE` ou `AMBAS`
 
-Para cada arquivo ausente, perguntar se deve ser criado.
+Para cada arquivo ausente, **→ Usar AskUserQuestion:**
+```
+Q: "[arquivo].md está ausente. Deseja criar?"
+   A) ✅ Sim — criar com base na especificação atual do caderneiro
+   B) ❌ Não — manter ausente
+```
+
+> Se múltiplos arquivos estiverem ausentes simultaneamente, agrupar em até 4 perguntas por chamada.
 
 ---
 
@@ -291,11 +296,11 @@ Comparar os arquivos presentes em `instrucoes/` com o conjunto de operações pa
 | `instrucoes/exportar-conteudo.md` | sempre |
 | `instrucoes/transcrever-aula.md` | se módulo de transcrição ativo |
 
-Para cada arquivo ausente:
+Para cada arquivo ausente, **→ Usar AskUserQuestion:**
 ```
-⚠️ instrucoes/[arquivo].md — ausente
-   Esta operação foi adicionada ao caderneiro após a criação deste caderno.
-   Deseja criar este arquivo? (Sim / Não)
+Q: "instrucoes/[arquivo].md — ausente (adicionado ao caderneiro após criação deste caderno). Deseja criar?"
+   A) ✅ Sim — criar agora
+   B) ❌ Não — manter ausente
 ```
 
 ---
@@ -304,18 +309,15 @@ Para cada arquivo ausente:
 
 Para cada arquivo presente em `instrucoes/`, ler seu conteúdo e compará-lo com a especificação correspondente no caderneiro. Identificar divergências conceituais: funcionalidades novas, regras alteradas, seções ausentes — não diff literal de texto.
 
-Para cada arquivo que divergir:
+Para cada arquivo que divergir, **→ Usar AskUserQuestion:**
 ```
-📄 instrucoes/[arquivo].md
-   Situação: versão do caderno difere da especificação atual do caderneiro
-   Principais diferenças: [resumo do que mudou]
-
-   Deseja atualizar este arquivo? (Sim / Não / Ver detalhes)
+Q: "instrucoes/[arquivo].md diverge da especificação atual. Principais diferenças: [resumo]. O que fazer?"
+   A) ✅ Atualizar — reescrever preservando personalizações da disciplina
+   B) 🔍 Ver detalhes — mostrar divergências antes de decidir
+   C) ❌ Manter — preservar versão atual
 ```
 
-- Se **Sim**: reescrever o arquivo com base na especificação atual do caderneiro, preservando personalizações específicas da disciplina
-- Se **Não**: manter a versão atual
-- Se **Ver detalhes**: detalhar as divergências antes de decidir
+- Se **Ver detalhes**: exibir detalhes em texto e usar AskUserQuestion novamente com A) Atualizar / B) Manter
 
 **Passo 2 — Relatório de atualização**
 
@@ -341,34 +343,33 @@ Ler o `CLAUDE.md` do caderno e extrair todas as configurações atuais:
 
 **Passo 2 — Questionário com respostas pré-sugeridas**
 
-Percorrer as seções do questionário (Seções 1 a 10), com cada pergunta pré-preenchida com o valor atual:
+Usar as **mesmas Chamadas 1–8 do Processo A (Criar caderno)**, com a seguinte adaptação:
+- A opção correspondente ao valor atual de cada variável é posicionada **em primeiro** na lista com o sufixo `(Atual)`
+- Exemplo para tipo de curso com valor atual HIBRIDA:
+  ```
+  A) ⚖️ Híbrida/Balanceada (Atual)
+  B) 💻 Técnica/Prática
+  C) 📚 Teórica/Conceitual
+  ```
+- Para multiSelect: marcar previamente as opções atualmente ativas
 
-```
-Para cada pergunta do questionário:
-  - Exibir o valor atual como sugestão padrão
-  - Perguntar: "Deseja manter [valor atual] ou alterar?"
-  - Se manter: avançar sem mudança
-  - Se alterar: registrar novo valor
-```
-
-Ao final, apresentar resumo apenas das mudanças feitas.
+Ao final, apresentar resumo apenas das mudanças feitas (variáveis alteradas vs. mantidas).
 
 **Passo 3 — Verificação de conformidade (opcional)**
 
-Após o questionário, perguntar:
-
+**→ Usar AskUserQuestion:**
 ```
-"Deseja verificar se o caderno está em conformidade com os requisitos do Caderneiro?"
+Q: "Deseja verificar se o caderno está em conformidade com o caderneiro atual?"
+   A) ✅ Sim — verificar e listar divergências
+   B) ❌ Não — aplicar apenas as mudanças acima
 ```
 
-Se **sim**, percorrer o checklist da Seção 9 item a item. Para cada ponto divergente:
-
+Se Sim: para cada ponto divergente encontrado, **→ Usar AskUserQuestion:**
 ```
-⚠️ [Descrição do ponto]
-   Situação atual: [o que está no caderno]
-   Esperado: [o que o Caderneiro requer]
-
-   Deseja corrigir? (Sim / Não / Ver detalhes)
+Q: "⚠️ [descrição]. Situação: [atual] → Esperado: [spec]. O que fazer?"
+   A) ✅ Corrigir agora
+   B) 🔍 Ver detalhes
+   C) ❌ Manter como está
 ```
 
 Relatório ao final:
@@ -421,7 +422,7 @@ Exibir o tutorial de setup da plataforma escolhida (ver abaixo) e, ao final, sal
 
 #### A) Notion
 
-> **Dependências:** `notion-md-sync` (go-notion-md-sync) + `.temp/push_notion.py` (gerado no setup).
+> **Dependências:** `notion-md-sync` (go-notion-md-sync) + `instrucoes/scripts/push_notion.py` (gerado no setup).
 
 **A.1 — Primeiro uso: setup do notion-md-sync**
 
@@ -461,33 +462,39 @@ NOTION_MD_SYNC_NOTION_TOKEN=ntn_XXXXXXXXXX...
 Para cada arquivo em `conteudos/imagens/`, fazer upload via Notion File Upload API (2 passos):
 
 ```
-# Passo 1 — criar objeto de upload:
+# Passo 1 — criar objeto de upload (headers: Authorization + Notion-Version + Content-Type: application/json):
 POST https://api.notion.com/v1/file_uploads
 Body: {"filename": "nome.png", "content_type": "image/png"}
-Resposta: {"id": "...", "upload_url": "https://..."}
+Resposta: {"id": "...", "upload_url": "https://api.notion.com/v1/file_uploads/{id}/send"}
 
-# Passo 2 — enviar o arquivo (usar a upload_url retornada, não construir manualmente):
+# Passo 2 — enviar o arquivo para a upload_url retornada
+# Headers: Authorization + Notion-Version (sem Content-Type — requests seta multipart automaticamente)
 POST <upload_url>
 Form-data: file=@caminho/imagem.png;type=image/png
 ```
+
+> ⚠️ **Atenção no Passo 2:** a `upload_url` é um endpoint da própria Notion (`/v1/file_uploads/{id}/send`), não S3. Exige `Authorization` e `Notion-Version`, mas **não** `Content-Type` (conflita com o multipart gerado automaticamente).
 
 Salvar o mapeamento `nome_arquivo → file_upload_id` em `/tmp/img_notion_map.json`.
 
 **A.3 — Push do conteúdo**
 
-⚠️ **Não usar `notion-md-sync push` diretamente** — ele tem um bug onde envia blocos de tabela sem os filhos, causando erro 400 da API Notion. Usar o script customizado em `.temp/push_notion.py`.
+⚠️ **Não usar `notion-md-sync push` diretamente** — ele tem um bug onde envia blocos de tabela sem os filhos, causando erro 400 da API Notion. Usar o script customizado em `instrucoes/scripts/push_notion.py`.
 
 ```bash
 source .env && export NOTION_MD_SYNC_NOTION_TOKEN
-python3 .temp/push_notion.py
+python3 instrucoes/scripts/push_notion.py
 ```
 
-O script opera sobre **todos** os arquivos em `conteudos/` de uma vez, em ordem alfabética (= ordem numérica pelo prefixo dos arquivos):
+O script opera sobre **todos** os arquivos em `conteudos/` de uma vez, em ordem alfabética (= ordem numérica pelo prefixo dos arquivos), ignorando `welcome.md` (arquivo residual do `notion-md-sync`):
 
 1. **Arquiva** todas as páginas existentes (`notion_id` no frontmatter) via `PATCH /pages/{id} {"archived": true}`
 2. **Recria** cada página em ordem, garantindo a sequência correta no Notion
 3. **Remove o `# H1`** do corpo antes de converter — ele já é o título da página, não deve aparecer duplicado
-4. Envia os blocos em chunks de 100 e salva o novo `notion_id` no frontmatter de cada arquivo
+4. **Extrai o emoji do título** (se houver) — remove do texto do título e define como ícone da página via `"icon": {"type": "emoji", "emoji": "📊"}` na criação. O título enviado ao Notion fica limpo, sem emoji.
+5. Envia os blocos em chunks de 100 e salva o novo `notion_id` no frontmatter de cada arquivo
+
+> O emoji no início do título (ex: `# 📊 Grafos`) é automaticamente extraído: o título da página no Notion recebe apenas o texto, e o emoji vira o ícone da página.
 
 > O `notion_id` muda a cada exportação (página nova a cada vez). Isso é esperado e transparente.
 
@@ -499,7 +506,7 @@ O mesmo comando re-exporta tudo do zero (arquiva as antigas e recria em ordem):
 
 ```bash
 source .env && export NOTION_MD_SYNC_NOTION_TOKEN
-python3 .temp/push_notion.py
+python3 instrucoes/scripts/push_notion.py
 ```
 
 **Tutorial de setup Notion (primeira vez):**
@@ -577,30 +584,28 @@ git push
 
 **Apenas para "Criar caderno". Pular para Passo 0 se for Atualizar/Modificar.**
 
+**→ Usar AskUserQuestion (Chamada 1):**
 ```
-"Onde deseja criar o caderno?"
+Q1: "Onde deseja criar o caderno?"
+    A) 📁 No caderneiro — cadernos/[nome-disciplina]/ (privado, .gitignore)
+    B) 📂 Em outro diretório (informar caminho completo)
 
-A) Dentro do caderneiro — caderneiro/cadernos/[nome-disciplina]/
-   Os cadernos ficam privados (pasta cadernos/ está no .gitignore).
-
-B) Em outro diretório
-   Informe o caminho completo onde o caderno será criado.
+Q2: "Você tem ementa ou conteúdo programático disponível?"
+    A) Sim — vou fornecer agora (PDF, texto ou colar aqui)
+    B) Não — vou preencher manualmente
 ```
 
 Armazenar em: `{{CAMINHO_CADERNO}}`
+- Se B em Q1: perguntar o caminho como texto livre após o menu.
 Usar em todos os passos seguintes para montar os caminhos dos arquivos gerados.
 
 ---
 
 ### 📄 Passo 0: EMENTA / CONTEÚDO PROGRAMÁTICO
 
-**Este passo acontece antes de qualquer pergunta.**
+**Este passo acontece após a Chamada 1 (se Q2 = Sim).**
 
-```
-"Você tem algum arquivo com a ementa ou conteúdo programático da disciplina?
-(PDF, texto, imagem, ou pode colar o conteúdo aqui)"
-
-Se SIM: ler o arquivo/conteúdo e extrair automaticamente:
+Se Q2 = Sim: solicitar o arquivo/conteúdo e extrair automaticamente:
   - Nome da disciplina → {{NOME_DISCIPLINA}}
   - Código → {{CODIGO_DISCIPLINA}}
   - Período → {{PERIODO}}
@@ -610,8 +615,7 @@ Se SIM: ler o arquivo/conteúdo e extrair automaticamente:
   - Lista de tópicos → {{TOPICOS}}
   - Tipo inferido → sugestão para Seção 2
 
-Se NÃO: continuar para Seção 1 normalmente.
-```
+Se Q2 = Não: continuar para Seção 1 normalmente.
 
 Após ler a ementa, apresentar um resumo do que foi extraído e pedir confirmação:
 ```
@@ -677,7 +681,7 @@ Armazenar em: {{CARGA_HORARIA}}
 
 **Objetivo:** Determinar a natureza predominante do conteúdo.
 
-Se a ementa foi fornecida no Passo 0, inferir o tipo e apresentar como sugestão:
+Se a ementa foi fornecida no Passo 0, inferir o tipo:
 ```
 Inferência baseada na ementa:
   - Palavras-chave como "implementação", "programação", "algoritmos", nomes de linguagens
@@ -685,112 +689,45 @@ Inferência baseada na ementa:
   - Palavras-chave como "teoria", "prova", "demonstração", "fundamentos", "cálculo"
     → sugerir TEÓRICA
   - Mix de ambos → sugerir HÍBRIDA
+```
+Se o tipo puder ser inferido, posicioná-lo **em primeiro** na lista com `(Recomendado)`.
 
-Apresentar: "Com base na ementa, parece ser uma disciplina [TIPO]. Confirma?"
+**→ Usar AskUserQuestion (Chamada 2):**
+```
+Q1: "Tipo de curso?"
+    A) 💻 Técnica/Prática — >60% código/implementação (Recomendado se inferido)
+    B) 📚 Teórica/Conceitual — >60% teoria/conceitos
+    C) ⚖️ Híbrida/Balanceada — mix equilibrado
+
+Q2: "Plataforma de visualização?"
+    A) 📘 Notion — interface visual rica, toggles, callouts
+    B) 📝 Obsidian — markdown local, wikilinks, graph view
+    C) 🐙 GitHub — GitHub-flavored markdown, Pages
+    D) 📄 LaTeX/PDF — documento acadêmico formal
+
+Q3: "Ferramenta de IA para operar o caderno?"
+    A) Claude Code — gera CLAUDE.md
+    B) OpenCode — gera AGENTS.md + opencode.json
+    C) Ambas — compatibilidade total (Recomendado)
 ```
 
-#### Pergunta Principal:
+Armazenar em: `{{TIPO_CURSO}}`, `{{PLATAFORMA}}`, `{{FERRAMENTA}}`
+Valores: `TECNICA|TEORICA|HIBRIDA`, `NOTION|OBSIDIAN|GITHUB|LATEX`, `CLAUDE_CODE|OPENCODE|AMBAS`
 
-```
-"Qual categoria melhor descreve sua disciplina?"
-
-A) 💻 TÉCNICA/PRÁTICA (>60% código/implementação)
-   - Programação, algoritmos, desenvolvimento
-   - Exemplos: Estruturas de Dados, POO, Banco de Dados
-
-B) 📚 TEÓRICA/CONCEITUAL (>60% teoria/conceitos)
-   - Fundamentos, matemática, análise
-   - Exemplos: Teoria da Computação, Cálculo, Lógica
-
-C) ⚖️ HÍBRIDA/BALANCEADA (mix equilibrado)
-   - Teoria + Prática em proporções similares
-   - Exemplos: Sistemas Operacionais, Redes, IA
-
-Sua resposta: ___ [sugestão pré-marcada se ementa disponível]
-```
-
-Armazenar em: `{{TIPO_CURSO}}`
-Valores possíveis: `TECNICA | TEORICA | HIBRIDA`
-
-> ℹ️ Refinamentos como linguagens usadas, nível de matemática e foco em algoritmos **não são perguntados aqui** — são inferidos progressivamente conforme as aulas são processadas.
-
----
-
-### 🖥️ Seção 3: PLATAFORMA ALVO
-
-**Objetivo:** Definir onde a documentação será consumida.
-
-#### Pergunta Principal:
-
-```
-"Onde você pretende visualizar/usar a documentação final?"
-
-A) 📘 NOTION
-   - Interface visual rica
-   - Suporta: toggles, callouts, databases
-   - Ideal para: Navegação web, compartilhamento
-   
-B) 📝 OBSIDIAN
-   - Editor markdown local
-   - Suporta: wikilinks, tags, graph view
-   - Ideal para: Uso offline, linking complexo
-   
-C) 🐙 GITHUB
-   - Markdown padrão GitHub-flavored
-   - Suporta: README.md, GitHub Pages
-   - Ideal para: Portfólios, projetos open-source
-   
-D) 📄 LATEX/PDF
-   - Documento acadêmico formal
-   - Suporta: Referências, índices, formatação profissional
-   - Ideal para: Impressão, submissão acadêmica
-
-Sua resposta: ___
-```
-
-Armazenar em: `{{PLATAFORMA}}`
-Valores possíveis: `NOTION | OBSIDIAN | GITHUB | LATEX`
+> ℹ️ Refinamentos como linguagens usadas e nível de matemática são inferidos progressivamente conforme as aulas são processadas.
 
 #### Configurações automáticas por plataforma
 
-Após a escolha da plataforma, o agente define automaticamente — sem perguntar ao usuário:
+Após a escolha, definir automaticamente sem perguntar:
 
 ```
-FORMATO_CALLOUT e SUPORTE_DIAGRAMAS são inferidos diretamente de {{PLATAFORMA}}:
-
-NOTION:
-  - Callout: > 💡 **Dica:** Texto
-  - Diagramas: Mermaid ✅ | ASCII ✅
-
-OBSIDIAN:
-  - Callout: > [!note] Título \n > Texto
-  - Diagramas: Mermaid ✅ | ASCII ✅
-
-GITHUB:
-  - Callout: > **Note** \n > Texto
-  - Diagramas: Mermaid ✅ | ASCII ✅
-
-LATEX:
-  - Callout: \begin{tcolorbox}[title=Nota] ... \end{tcolorbox}
-  - Diagramas: TikZ ✅ | ASCII ✅ | Mermaid ❌
+NOTION:   Callout: > 💡 **Dica:** Texto  |  Diagramas: Mermaid ✅ ASCII ✅
+OBSIDIAN: Callout: > [!note] Título      |  Diagramas: Mermaid ✅ ASCII ✅
+GITHUB:   Callout: > **Note**            |  Diagramas: Mermaid ✅ ASCII ✅
+LATEX:    Callout: \begin{tcolorbox}...  |  Diagramas: TikZ ✅ ASCII ✅ Mermaid ❌
 
 Armazenar em: {{FORMATO_CALLOUT}} e {{SUPORTE_DIAGRAMAS}}
 ```
-
-#### Ferramenta de IA
-
-```
-"Qual ferramenta de IA você usará para operar o caderno?"
-
-A) Claude Code  — gera CLAUDE.md
-B) OpenCode     — gera AGENTS.md + opencode.json
-C) Ambas        — gera CLAUDE.md + AGENTS.md + opencode.json
-
-Armazenar em: {{FERRAMENTA}}
-Valores: CLAUDE_CODE | OPENCODE | AMBAS
-```
-
-> ℹ️ Se não tiver preferência, escolha **Ambas** — garante compatibilidade independente da ferramenta usada no futuro.
 
 ---
 
@@ -798,238 +735,57 @@ Valores: CLAUDE_CODE | OPENCODE | AMBAS
 
 **Objetivo:** Selecionar componentes adicionais para o plano.
 
-#### Introdução ao Usuário:
-
+**→ Usar AskUserQuestion (Chamada 3) com multiSelect:**
 ```
-"Agora vamos selecionar componentes opcionais para sua documentação.
-Cada módulo adiciona funcionalidades específicas.
+Q1 (multiSelect): "Módulos de conteúdo — selecione os que deseja incluir:"
+    A) 🔍 Análise de Código — comentários linha a linha, análise de complexidade
+    B) 📊 Diagramas — Mermaid, fluxogramas, árvores, ASCII art
+    C) 📝 Exercícios — por dificuldade (🟢🟡🔴) com soluções em toggles
+    D) 📖 Glossário — definições técnicas por aula ou global
 
-Marque todos que você deseja incluir:"
-```
-
-#### 4.1. Módulo de ANÁLISE DE CÓDIGO
-
-```
-[ ] Incluir Módulo de Análise de Código
-
-📦 O que este módulo adiciona:
-  ✓ Instruções para comentar código linha por linha
-  ✓ Templates para explicar funções/métodos
-  ✓ Seções de análise de complexidade
-  ✓ Exemplos de entrada/saída
-  ✓ Identificação de padrões de design
-
-🎯 Recomendado para:
-  • Disciplinas com implementações (TÉCNICA/HÍBRIDA)
-  • Cursos de programação, algoritmos, estruturas de dados
-
-❌ NÃO recomendado para:
-  • Cursos puramente teóricos sem código
+Q2 (multiSelect): "Módulos adicionais — selecione os que deseja incluir:"
+    A) 🔢 Fórmulas Matemáticas — LaTeX inline/display, equações, demos
+    B) 📚 Referências Bibliográficas — ABNT, links, material complementar
+    C) 🎥 Mídia — vídeos, áudios, imagens, capturas de tela
+    D) 📸 Transcrição de Manuscritos — quadro/lousa, PDFs de fotos
 ```
 
-Armazenar em: `{{MODULO_CODIGO}}`
-Valores: `true | false`
+> Módulo de Consistência (regras C1–C6) é **ativado por padrão** — não aparece no menu.
+> Armazenar: `{{MODULO_CODIGO}}`, `{{MODULO_DIAGRAMAS}}`, `{{MODULO_EXERCICIOS}}`, `{{MODULO_GLOSSARIO}}`, `{{MODULO_FORMULAS}}`, `{{MODULO_REFERENCIAS}}`, `{{MODULO_MIDIA}}`, `{{MODULO_TRANSCRICAO}}`
 
-#### 4.2. Módulo de DIAGRAMAS
+**Subperguntas condicionais (após Chamada 3):**
 
+Se `{{MODULO_EXERCICIOS}}` = true:
 ```
-[ ] Incluir Módulo de Diagramas
-
-📦 O que este módulo adiciona:
-  ✓ Guia de criação de diagramas Mermaid
-  ✓ Templates para fluxogramas, árvores, grafos
-  ✓ Instruções para ASCII art (quando Mermaid não serve)
-  ✓ Regras de clareza e consistência visual
-  ✓ Legendas e explicações obrigatórias
-
-🎯 Recomendado para:
-  • Estruturas de dados visuais (árvores, grafos, heaps)
-  • Algoritmos com fluxos complexos
-  • Arquiteturas e sistemas
-
-⚠️ IMPORTANTE - Quando NÃO usar Mermaid:
-  • Arrays com índices e valores lado a lado
-  • Ponteiros e referências de memória
-  • Estruturas de memória baixo nível
-  
-  → Nestes casos, usar:
-     • ASCII art em blocos de código
-     • Tabelas formatadas
-     • Descrição textual detalhada
-
-❌ NÃO recomendado para:
-  • Disciplinas puramente textuais
-```
-
-Armazenar em: `{{MODULO_DIAGRAMAS}}`
-Valores: `true | false`
-
-#### 4.3. Módulo de EXERCÍCIOS
-
-```
-[ ] Incluir Módulo de Exercícios
-
-📦 O que este módulo adiciona:
-  ✓ Sistema de geração de exercícios por dificuldade
-  ✓ Templates para enunciados e soluções
-  ✓ Exercícios distribuídos por subtópico (não apenas no final)
-  ✓ Soluções em toggles/expandable sections
-  ✓ Classificação: Básico 🟢, Intermediário 🟡, Avançado 🔴
-
-🎯 Recomendado para:
-  • Qualquer disciplina onde prática é importante
-  • Cursos com avaliações baseadas em exercícios
-
-📊 Quantidade Adaptativa:
-  • Tópicos Simples: 5-8 exercícios
-  • Tópicos Médios: 9-12 exercícios
-  • Tópicos Complexos: 13-20 exercícios
-  
-📐 Distribuição por Dificuldade:
-  • 40% Básico (aplicação direta)
-  • 40% Intermediário (combinação de conceitos)
-  • 20% Avançado (problemas desafiadores)
-
-❌ NÃO recomendado para:
-  • Disciplinas puramente expositivas
-```
-
-Armazenar em: `{{MODULO_EXERCICIOS}}`
-Valores: `true | false`
-
-**Subpergunta 4.3.1 (se ativado):**
-```
-"Incluir soluções detalhadas nos exercícios?"
-  (A) Sim, sempre com explicação completa
-  (B) Sim, mas apenas gabarito resumido
-  (C) Não, apenas enunciados
-
+→ Usar AskUserQuestion:
+Q: "Soluções nos exercícios?"
+   A) Explicação completa (Recomendado)
+   B) Gabarito resumido
+   C) Apenas enunciados
 Armazenar em: {{EXERCICIOS_COM_SOLUCAO}}
 ```
 
-#### 4.4. Módulo de GLOSSÁRIO
-
+Se `{{MODULO_GLOSSARIO}}` = true:
 ```
-[ ] Incluir Módulo de Glossário
-
-📦 O que este módulo adiciona:
-  ✓ Seção de glossário por aula/tópico
-  ✓ Definições técnicas padronizadas
-  ✓ Formato expandible (toggle/details)
-  ✓ Ordem alfabética automática
-
-🎯 Recomendado para:
-  • Disciplinas com muita terminologia técnica
-  • Cursos introdutórios (muitos termos novos)
-  • Áreas com jargão específico
-
-📍 Localização:
-  • OPÇÃO A: Glossário por aula (ao final de cada seção)
-  • OPÇÃO B: Glossário global (seção separada ao final)
-
-❌ NÃO recomendado para:
-  • Disciplinas com poucos termos técnicos
-```
-
-Armazenar em: `{{MODULO_GLOSSARIO}}`
-Valores: `true | false`
-
-**Subpergunta 4.4.1 (se ativado):**
-```
-"Glossário por aula ou global?"
-  (A) Por aula - Ao final de cada seção de aula
-  (B) Global - Seção única ao final do documento
-
+→ Usar AskUserQuestion:
+Q: "Localização do glossário?"
+   A) Por aula — ao final de cada seção
+   B) Global — seção única ao final do documento
 Armazenar em: {{GLOSSARIO_TIPO}}
 ```
 
-#### 4.5. Módulo de FÓRMULAS MATEMÁTICAS
+**Referência dos módulos (para geração do CLAUDE.md):**
 
-```
-[ ] Incluir Módulo de Fórmulas Matemáticas
-
-📦 O que este módulo adiciona:
-  ✓ Suporte para LaTeX inline e display
-  ✓ Templates para equações, somatórios, integrais
-  ✓ Guia de formatação matemática
-  ✓ Exemplos de demonstrações passo-a-passo
-
-🎯 Recomendado para:
-  • Cálculo, Álgebra, Análise
-  • Algoritmos com análise matemática formal
-  • Física, Estatística, Otimização
-
-⚙️ Sintaxe por plataforma:
-  • Notion: $$E = mc^2$$
-  • Obsidian: $E = mc^2$
-  • GitHub: $E = mc^2$ (suporte recente)
-  • LaTeX: $E = mc^2$ (nativo)
-
-❌ NÃO recomendado para:
-  • Disciplinas sem matemática formal
-  • Cursos apenas com aritmética básica
-```
-
-Armazenar em: `{{MODULO_FORMULAS}}`
-Valores: `true | false`
-
-#### 4.6. Módulo de REFERÊNCIAS
-
-```
-[ ] Incluir Módulo de Referências
-
-📦 O que este módulo adiciona:
-  ✓ Seção de referências bibliográficas
-  ✓ Formatação ABNT ou outro padrão
-  ✓ Links para recursos externos
-  ✓ Material complementar recomendado
-
-🎯 Recomendado para:
-  • Trabalhos acadêmicos formais
-  • Disciplinas com leituras obrigatórias
-  • Documentação que será publicada/compartilhada
-
-📚 Tipos de referência:
-  • Livros didáticos
-  • Artigos científicos
-  • Documentação oficial
-  • Vídeos/tutoriais
-  • Repositórios GitHub
-
-❌ NÃO recomendado para:
-  • Notas de estudo pessoais simples
-```
-
-Armazenar em: `{{MODULO_REFERENCIAS}}`
-Valores: `true | false`
-
-#### 4.7. Módulo de MÍDIA
-
-```
-[ ] Incluir Módulo de Mídia
-
-📦 O que este módulo adiciona:
-  ✓ Instruções para processar imagens
-  ✓ Embedding de vídeos
-  ✓ Transcrição de áudios
-  ✓ Capturas de tela anotadas
-
-🎯 Recomendado para:
-  • Aulas gravadas (vídeos)
-  • Slides com muitas imagens
-  • Tutoriais visuais
-
-📁 Tipos suportados:
-  • Imagens: PNG, JPG, SVG
-  • Vídeos: YouTube, Vimeo (embed)
-  • Áudios: Transcrição para texto
-
-❌ NÃO recomendado para:
-  • Material puramente textual
-```
-
-Armazenar em: `{{MODULO_MIDIA}}`
-Valores: `true | false`
+| Módulo | O que adiciona |
+|--------|---------------|
+| Análise de Código | Comentários linha a linha, templates para funções, entrada/saída |
+| Diagramas | Mermaid, fluxogramas, árvores, grafos; ASCII art para arrays/ponteiros |
+| Exercícios | 🟢🟡🔴 por subtópico; 40/40/20 básico/intermediário/avançado; soluções em toggle |
+| Glossário | Definições técnicas, formato expandível, ordem alfabética |
+| Fórmulas | LaTeX inline/display; sintaxe por plataforma ($$, $) |
+| Referências | ABNT, links, material complementar |
+| Mídia | Imagens PNG/JPG, vídeos embed, transcrição de áudios |
+| Transcrição | Procedimento 3 etapas, tratamento de visuais, relatório padronizado |
 
 #### 4.8. Módulo de CONSISTÊNCIA NA GERAÇÃO
 
@@ -1159,71 +915,16 @@ Antes de incluir a solução de um exercício:
 
 **Objetivo:** Definir organização interna da documentação.
 
-#### 5.1. Tabela de Controle
-
+**→ Usar AskUserQuestion (Chamada 4) com multiSelect:**
 ```
-"Deseja incluir uma tabela de controle para acompanhar progresso?"
-
-A tabela de controle ficará no próprio arquivo de tópico ou em local definido pelo usuário, e incluirá:
-  • Número e nome do tópico (ou aula, se sem programa)
-  • Nome do arquivo correspondente
-  • Status (⏳ Pendente / 🔄 Em progresso / ✅ Concluído)
-  • Aulas já processadas neste arquivo
-  • Quantidade de exercícios acumulados
-
-Resposta: [Sim/Não]
+Q1 (multiSelect): "Elementos de estrutura — selecione os que deseja:"
+    A) 📋 Tabela de controle de progresso — status por tópico/aula
+    B) 🎯 Objetivos de aprendizagem — checkboxes no início de cada aula
+    C) 📌 Resumo executivo (TL;DR) — parágrafo de 3-5 linhas ao final
+    D) ✅ Seções "Quando usar / Quando NÃO usar" — para algoritmos/estruturas
 ```
 
-Armazenar em: `{{INCLUIR_TABELA_CONTROLE}}`
-Valores: `true | false`
-
-#### 5.2. Objetivos de Aprendizagem
-
-```
-"Incluir seção de objetivos de aprendizagem no início de cada aula?"
-
-Formato com checkboxes:
-  - [ ] Objetivo específico 1
-  - [ ] Objetivo específico 2
-
-Resposta: [Sim/Não]
-```
-
-Armazenar em: `{{INCLUIR_OBJETIVOS}}`
-Valores: `true | false`
-
-#### 5.3. Resumo Executivo
-
-```
-"Incluir resumo executivo (TL;DR) ao final de cada aula?"
-
-Um parágrafo de 3-5 linhas resumindo os principais pontos.
-
-Resposta: [Sim/Não]
-```
-
-Armazenar em: `{{INCLUIR_RESUMO}}`
-Valores: `true | false`
-
-#### 5.4. Seções "Quando Usar / Quando NÃO Usar"
-
-```
-"Para algoritmos/estruturas, incluir seções de quando usar?"
-
-Formato:
-  ✅ Quando usar [algoritmo]:
-    • Cenário 1
-    • Cenário 2
-  
-  ❌ Quando NÃO usar:
-    • Situação 1
-    • Situação 2
-
-Resposta: [Sim/Não]
-```
-
-Armazenar em: `{{INCLUIR_QUANDO_USAR}}`
-Valores: `true | false`
+Armazenar em: `{{INCLUIR_TABELA_CONTROLE}}`, `{{INCLUIR_OBJETIVOS}}`, `{{INCLUIR_RESUMO}}`, `{{INCLUIR_QUANDO_USAR}}`
 
 ---
 
@@ -1231,103 +932,29 @@ Valores: `true | false`
 
 **Objetivo:** Personalizar aspectos visuais e de tom.
 
-#### 6.1. Tom da Documentação
-
+**→ Usar AskUserQuestion (Chamada 5):**
 ```
-"Qual tom de linguagem você prefere?"
+Q1: "Tom de linguagem?"
+    A) 📘 Formal — acadêmico ("O algoritmo Merge Sort utiliza...")
+    B) 💬 Didático — conversacional ("O Merge Sort funciona dividindo...")
+    C) ⚡ Direto — conciso ("Merge Sort: divisão recursiva. O(n log n).")
 
-A) 📘 FORMAL - Linguagem acadêmica tradicional
-   Exemplo: "O algoritmo Merge Sort utiliza a estratégia de divisão e conquista..."
-   
-B) 💬 DIDÁTICO - Conversacional e explicativo
-   Exemplo: "O Merge Sort funciona dividindo o problema em partes menores. Vamos entender como..."
-   
-C) ⚡ DIRETO - Conciso e objetivo
-   Exemplo: "Merge Sort: Divisão recursiva + Merge O(n). Complexidade: O(n log n)."
+Q2: "Nível de detalhamento?"
+    A) 🔍 Alto — explicações extensas, múltiplos exemplos (30–60 min/aula)
+    B) 📊 Médio — balanceado, exemplos-chave (15–30 min/aula)
+    C) 📝 Baixo — resumos, bullet points (5–15 min/aula)
 
-Sua resposta: ___
-```
-
-Armazenar em: `{{TOM_LINGUAGEM}}`
-Valores: `FORMAL | DIDATICO | DIRETO`
-
-#### 6.2. Uso de Emojis
-
-```
-"Usar emojis como marcadores visuais?"
-
-Exemplos:
-  ✅ Vantagens
-  ❌ Desvantagens
-  💡 Dica
-  ⚠️ Atenção
-  🎯 Objetivo
-
-Resposta: [Sim/Não]
+Q3: "Público-alvo principal?"
+    A) 👨‍🎓 Estudante acompanhando o curso — tem contexto das aulas
+    B) 🎯 Autodidata (sem aulas) — documentação autocontida
+    C) 🔄 Revisão para provas — resumos e exercícios
+    D) 📚 Referência profissional — técnica e precisa
 ```
 
-Armazenar em: `{{USAR_EMOJIS}}`
-Valores: `true | false`
+Armazenar em: `{{TOM_LINGUAGEM}}`, `{{NIVEL_DETALHAMENTO}}`, `{{PUBLICO_ALVO}}`
+Valores: `FORMAL|DIDATICO|DIRETO`, `ALTO|MEDIO|BAIXO`, `ESTUDANTE_ACOMPANHANDO|AUTODIDATA|REVISAO|REFERENCIA`
 
-#### 6.3. Nível de Detalhamento
-
-```
-"Qual o nível de detalhamento desejado?"
-
-A) 🔍 ALTO - Explicações extensas, múltiplos exemplos
-   • Para: Autodidatas, revisão profunda
-   • Tempo leitura: 30-60 min/aula
-   
-B) 📊 MÉDIO - Balanceado, exemplos chave
-   • Para: Complemento às aulas presenciais
-   • Tempo leitura: 15-30 min/aula
-   
-C) 📝 BAIXO - Resumos, bullet points
-   • Para: Referência rápida, revisão
-   • Tempo leitura: 5-15 min/aula
-
-Sua resposta: ___
-```
-
-Armazenar em: `{{NIVEL_DETALHAMENTO}}`
-Valores: `ALTO | MEDIO | BAIXO`
-
----
-
-### 🎯 Seção 7: PÚBLICO-ALVO
-
-**Objetivo:** Adaptar linguagem e profundidade ao leitor esperado.
-
-#### Pergunta Principal:
-
-```
-"Quem é o público-alvo principal desta documentação?"
-
-A) 👨‍🎓 ESTUDANTE ACOMPANHANDO O CURSO
-   - Possui contexto das aulas presenciais
-   - Precisa de complemento e referência
-   - Pode tirar dúvidas com professor
-
-B) 🎯 ESTUDANTE AUTODIDATA (SEM AULAS)
-   - NÃO tem contexto de aulas presenciais
-   - Documentação deve ser autocontida
-   - Explicações mais detalhadas necessárias
-
-C) 🔄 REVISÃO PARA PROVAS/CONCURSOS
-   - Já estudou o conteúdo antes
-   - Precisa de resumos e exercícios
-   - Foco em pontos-chave
-
-D) 📚 REFERÊNCIA PROFISSIONAL
-   - Já conhece fundamentos
-   - Busca detalhes de implementação
-   - Documentação técnica precisa
-
-Sua resposta: ___
-```
-
-Armazenar em: `{{PUBLICO_ALVO}}`
-Valores: `ESTUDANTE_ACOMPANHANDO | AUTODIDATA | REVISAO | REFERENCIA`
+> ℹ️ `USAR_EMOJIS` é definido na Chamada 7 junto com as demais configurações avançadas.
 
 **Impacto na geração:**
 - `AUTODIDATA` → Ativa explicações mais detalhadas, glossário obrigatório
@@ -1340,95 +967,78 @@ Valores: `ESTUDANTE_ACOMPANHANDO | AUTODIDATA | REVISAO | REFERENCIA`
 
 **Objetivo:** Identificar tipos de arquivos a processar.
 
-#### Pergunta Principal:
-
+**→ Usar AskUserQuestion (Chamada 6) com multiSelect:**
 ```
-"Que tipos de materiais você terá para processar?"
+Q1 (multiSelect): "Tipos de materiais — parte 1:"
+    A) 📄 PDFs — slides, apostilas, artigos
+    B) 💻 Códigos-fonte — .c, .java, .py, .cpp…
+    C) 🖼️ Imagens e diagramas
+    D) 📝 Textos e anotações — .md, .txt
 
-Marque todos que se aplicam:
-
-[ ] 📄 PDFs (slides, apostilas, artigos)
-[ ] 💻 Códigos (.c, .java, .py, .cpp, etc.)
-[ ] 🖼️ Imagens (diagramas, gráficos, fotos)
-[ ] 📝 Textos (.md, .txt, anotações)
-[ ] 🎥 Vídeos (aulas gravadas, tutoriais)
-[ ] 🔊 Áudios (gravações, podcasts)
-[ ] 🌐 Links externos (documentação, artigos web)
-[ ] 📸 Fotos de quadro / materiais manuscritos (ex: capturas.pdf, pasta capturas/)
+Q2 (multiSelect): "Tipos de materiais — parte 2:"
+    A) 🎥 Vídeos — aulas gravadas, tutoriais
+    B) 🔊 Áudios — gravações, podcasts
+    C) 🌐 Links externos — documentação, artigos web
+    D) 📸 Fotos de quadro / manuscritos — capturas.pdf, pasta capturas/
 ```
 
 Armazenar em: `{{TIPOS_MATERIAIS}}`
-Valores: Lista de tipos marcados
 
-#### Subperguntas baseadas em seleção:
+**Subperguntas condicionais (após Chamada 6):**
 
-**8.1. Se marcou PDFs:**
+Se marcou PDFs:
 ```
-"Os PDFs são principalmente:"
-  (A) Slides de aula (bullet points, figuras)
-  (B) Apostilas/livros (texto corrido)
-  (C) Artigos científicos (formal, referências)
-  (D) Misto
-
+→ Usar AskUserQuestion:
+Q: "Os PDFs são principalmente:"
+   A) Slides de aula — bullet points, figuras
+   B) Apostilas/livros — texto corrido
+   C) Artigos científicos — formal, referências
+   D) Misto
 Armazenar em: {{TIPO_PDF}}
 ```
 
-**8.2. Se marcou Códigos:**
+Se marcou Códigos:
 ```
-"Você quer que TODOS os códigos sejam:"
-  (A) Comentados linha por linha
-  (B) Comentados apenas nas partes-chave
-  (C) Apenas transcritos (sem comentários adicionais)
-
+→ Usar AskUserQuestion:
+Q: "Comentários nos códigos:"
+   A) Linha por linha — explicação completa
+   B) Partes-chave — comentários seletivos (Recomendado)
+   C) Apenas transcritos — sem comentários adicionais
 Armazenar em: {{NIVEL_COMENTARIO_CODIGO}}
 ```
 
-**8.3. Se marcou Imagens:**
+Se marcou Imagens:
 ```
-"As imagens são principalmente:"
-  [ ] Diagramas técnicos (podem ser recriados em Mermaid/ASCII)
-  [ ] Gráficos e plots (dados visualizados)
-  [ ] Fotos de quadro/anotações (transcrever)
-  [ ] Screenshots de código (digitar)
-  [ ] Ilustrações conceituais (descrever)
-
+→ Usar AskUserQuestion (multiSelect):
+Q: "As imagens são principalmente (selecione as que se aplicam):"
+   A) Diagramas técnicos — recriar em Mermaid/ASCII
+   B) Gráficos e plots — extrair dados para tabela
+   C) Fotos de quadro/anotações — transcrever
+   D) Screenshots de código — digitar
 Armazenar em: {{TIPOS_IMAGENS}}
 ```
 
-**8.4. Se marcou Vídeos:**
+Se marcou Vídeos:
 ```
-"Como processar vídeos?"
-  (A) Transcrever falas importantes
-  (B) Capturar timestamps e tópicos
-  (C) Apenas linkar (não processar)
-
+→ Usar AskUserQuestion:
+Q: "Como processar vídeos?"
+   A) Transcrever falas importantes
+   B) Capturar timestamps e tópicos (Recomendado)
+   C) Apenas linkar (não processar)
 Armazenar em: {{PROCESSAMENTO_VIDEO}}
 ```
 
-**8.5. Se marcou Fotos de quadro / materiais manuscritos:**
+Se marcou Manuscritos:
 ```
-→ Ativa automaticamente o Módulo 8 (Transcrição de Materiais Manuscritos).
-
-"Como devo tratar diagramas, desenhos e outros elementos visuais
-encontrados nos materiais manuscritos?"
-
-A) 📝 Descrição textual detalhada
-      Descrevo o conteúdo visual em itálico no corpo do texto.
-
-B) 🎨 Prompt para geração de imagem por IA
-      Gero um bloco de prompt detalhado (nós, posições, estilos)
-      agrupado ao final do arquivo para você gerar depois.
-
-C) 📐 Diagrama/notação da área de conhecimento
-      Uso a ferramenta padrão da área (ex: Mermaid, notação musical,
-      circuito elétrico, estrutura química) quando aplicável.
-
-D) 🔀 Combinação: descrição + recurso técnico
-      Descrevo textualmente E gero o prompt/diagrama correspondente.
-
+→ Ativa automaticamente {{MODULO_TRANSCRICAO}} = true.
+→ Usar AskUserQuestion:
+Q: "Tratamento de elementos visuais nos manuscritos:"
+   A) 📝 Descrição textual detalhada
+   B) 🎨 Prompt para geração de imagem por IA
+   C) 📐 Diagrama/notação da área (Mermaid, UML, etc.)
+   D) 🔀 Combinação: descrição + recurso técnico
 Armazenar em: {{TRATAMENTO_VISUAIS_MANUSCRITOS}}
-Nota: Esta configuração vale para todas as aulas transcritas,
-      sem perguntar novamente — salvo instrução explícita do usuário.
+Nota: vale para todas as aulas, sem perguntar novamente.
 ```
 
 ---
@@ -1437,71 +1047,36 @@ Nota: Esta configuração vale para todas as aulas transcritas,
 
 **Objetivo:** Ajustes finos e preferências especiais.
 
-#### 9.1. Numeração de Aulas
-
+**→ Usar AskUserQuestion (Chamada 7):**
 ```
-"Como as aulas são numeradas?"
-  (A) 01, 02, 03, ... (dois dígitos)
-  (B) 1, 2, 3, ... (sem zero à esquerda)
-  (C) Semana 1, Semana 2, ...
-  (D) Por tópico (não sequencial)
+Q1: "Numeração das aulas?"
+    A) 01, 02, 03 — dois dígitos (Recomendado)
+    B) 1, 2, 3 — sem zero à esquerda
+    C) Semana 1, Semana 2
+    D) Por tópico (não sequencial)
 
-Armazenar em: {{FORMATO_NUMERACAO}}
-```
+Q2: "Idioma da documentação?"
+    A) Português (Brasil) (Recomendado)
+    B) Inglês
+    C) Bilíngue — termos em inglês, explicações em PT
 
-#### 9.2. Idioma
-
-```
-"Idioma principal da documentação?"
-  (A) Português (Brasil)
-  (B) Inglês
-  (C) Bilíngue (termos técnicos em inglês, explicações em português)
-
-Armazenar em: {{IDIOMA}}
+Q3 (multiSelect): "Elementos avançados — selecione os que deseja:"
+    A) 📊 Análise de complexidade (Big-O) nos algoritmos
+    B) 🔀 Comparações entre algoritmos similares (tabelas)
+    C) 💡 Contexto histórico e curiosidades
+    D) 😀 Emojis como marcadores visuais (✅ ❌ 💡 ⚠️ 🎯)
 ```
 
-#### 9.3. Análise de Complexidade
+Armazenar em: `{{FORMATO_NUMERACAO}}`, `{{IDIOMA}}`, `{{INCLUIR_COMPLEXIDADE}}`, `{{INCLUIR_COMPARACOES}}`, `{{INCLUIR_CONTEXTO_HISTORICO}}`, `{{USAR_EMOJIS}}`
 
+Se `{{INCLUIR_COMPLEXIDADE}}` = true:
 ```
-"Incluir análise de complexidade (Big-O) nos algoritmos?"
-  [Sim/Não]
-
-Se SIM:
-  "Nível de detalhamento:"
-    (A) Apenas resultado final: O(n log n)
-    (B) Com justificativa resumida
-    (C) Com demonstração matemática completa
-
-Armazenar em: {{INCLUIR_COMPLEXIDADE}} e {{NIVEL_COMPLEXIDADE}}
-```
-
-#### 9.4. Comparações entre Algoritmos/Conceitos
-
-```
-"Incluir seções comparativas entre algoritmos similares?"
-
-Exemplo:
-  | Característica | Merge Sort | Quick Sort |
-  |----------------|-----------|------------|
-  | Complexidade   | O(n log n)| O(n²) pior|
-  | Estabilidade   | Sim       | Não       |
-
-Resposta: [Sim/Não]
-
-Armazenar em: {{INCLUIR_COMPARACOES}}
-```
-
-#### 9.5. Histórico e Contexto
-
-```
-"Incluir contexto histórico e curiosidades?"
-
-Exemplo:
-  > 💡 **Curiosidade:** O Quick Sort foi desenvolvido por Tony Hoare em 1959...
-
-Resposta: [Sim/Não]
-
-Armazenar em: {{INCLUIR_CONTEXTO_HISTORICO}}
+→ Usar AskUserQuestion:
+Q: "Nível da análise de complexidade?"
+   A) Apenas resultado final: O(n log n)
+   B) Com justificativa resumida (Recomendado)
+   C) Com demonstração matemática completa
+Armazenar em: {{NIVEL_COMPLEXIDADE}}
 ```
 
 ---
@@ -1510,50 +1085,32 @@ Armazenar em: {{INCLUIR_CONTEXTO_HISTORICO}}
 
 **Objetivo:** Revisar e confirmar todas as escolhas.
 
-#### Resumo Interativo:
+Apresentar o resumo de todas as variáveis coletadas em texto, depois usar AskUserQuestion:
 
 ```
-"Perfeito! Vamos revisar suas escolhas:
-
 📋 IDENTIFICAÇÃO:
-  • Disciplina: {{NOME_DISCIPLINA}}
-  • Código: {{CODIGO_DISCIPLINA}}
-  • Período: {{PERIODO}}
-  • Professor: {{PROFESSOR}}
+  • Disciplina: {{NOME_DISCIPLINA}} | Código: {{CODIGO_DISCIPLINA}}
+  • Período: {{PERIODO}} | Professor: {{PROFESSOR}}
   • Instituição: {{INSTITUICAO}}
 
-🎓 TIPO DE CURSO: {{TIPO_CURSO}}
-  {{#if LINGUAGENS}}
-  • Linguagens: {{LINGUAGENS}}
-  {{/if}}
+🎓 CURSO: {{TIPO_CURSO}} | 🖥️ PLATAFORMA: {{PLATAFORMA}} | 🛠️ FERRAMENTA: {{FERRAMENTA}}
 
+🧩 MÓDULOS: Código:{{MODULO_CODIGO}} Diagramas:{{MODULO_DIAGRAMAS}} Exercícios:{{MODULO_EXERCICIOS}}
+            Glossário:{{MODULO_GLOSSARIO}} Fórmulas:{{MODULO_FORMULAS}} Refs:{{MODULO_REFERENCIAS}}
+            Mídia:{{MODULO_MIDIA}} Transcrição:{{MODULO_TRANSCRICAO}} Consistência:✅
 
-🖥️ PLATAFORMA: {{PLATAFORMA}}
-
-🧩 MÓDULOS ATIVOS:
-  {{#if MODULO_CODIGO}}✅{{else}}❌{{/if}} Análise de Código
-  {{#if MODULO_DIAGRAMAS}}✅{{else}}❌{{/if}} Diagramas
-  {{#if MODULO_EXERCICIOS}}✅{{else}}❌{{/if}} Exercícios
-  {{#if MODULO_GLOSSARIO}}✅{{else}}❌{{/if}} Glossário
-  {{#if MODULO_FORMULAS}}✅{{else}}❌{{/if}} Fórmulas Matemáticas
-  {{#if MODULO_REFERENCIAS}}✅{{else}}❌{{/if}} Referências
-  {{#if MODULO_MIDIA}}✅{{else}}❌{{/if}} Mídia
-  {{#if MODULO_CONSISTENCIA}}✅{{else}}❌{{/if}} Consistência na Geração (padrão: ✅)
-
-🎨 ESTILO:
-  • Tom: {{TOM_LINGUAGEM}}
-  • Emojis: {{USAR_EMOJIS}}
-  • Detalhamento: {{NIVEL_DETALHAMENTO}}
-
-👥 PÚBLICO-ALVO: {{PUBLICO_ALVO}}
-
-📁 MATERIAIS: {{TIPOS_MATERIAIS}}
-
-Tudo correto? [Sim/Não]
-
-Se NÃO: "Qual seção deseja revisar?"
-Se SIM: "Ótimo! Vou gerar seu CLAUDE.md personalizado agora."
+🎨 ESTILO: Tom:{{TOM_LINGUAGEM}} | Detalhamento:{{NIVEL_DETALHAMENTO}} | Emojis:{{USAR_EMOJIS}}
+👥 PÚBLICO: {{PUBLICO_ALVO}} | 📁 MATERIAIS: {{TIPOS_MATERIAIS}}
 ```
+
+**→ Usar AskUserQuestion (Chamada 8):**
+```
+Q: "Tudo correto?"
+   A) ✅ Sim — gerar o caderno agora
+   B) 🔧 Não — revisar uma seção
+```
+
+Se B: perguntar qual seção revisar (texto livre) e retornar à chamada correspondente.
 
 ---
 
@@ -2422,6 +1979,9 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
 6. **Adaptar ao público-alvo**
 7. **Definir estratégia de arquivos de saída** (todos ficam em `conteudos/`):
    - Se `{{EMENTA}}` foi fornecida: um arquivo por tópico do Conteúdo Programático
+     → Ao criar os arquivos, escolher um emoji representativo para cada tópico e incluir
+       no título H1: `# 📊 Nome do Tópico`. O emoji deve refletir o conteúdo central
+       (ex: 📊 análise/dados, 🔗 grafos/redes, ⚙️ algoritmos, 🔍 busca, 🗂️ estruturas).
    - Se não foi fornecida: um arquivo por aula
 8. **Gerar os arquivos de contexto** conforme `{{FERRAMENTA}}`:
 
@@ -2459,6 +2019,9 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Usa qualquer material em `aulas/aula-XX/`: `transcricao.md`, PDFs, código, imagens ou combinação
    - Análise de código (se módulo ativo)
    - Diagramas (se módulo ativo)
+   - Emoji do conteúdo: ao criar ou atualizar o título H1 de um arquivo de conteúdo, escolher
+     um emoji representativo para o tema e incluir à esquerda (`# 🔍 Nome do Tópico`). Se o
+     arquivo já tem emoji e um mais adequado for identificado ao longo das aulas, atualizar.
 
    **`instrucoes/gerar-imagens.md`** (sempre gerado):
    - Regras para grafos (prompt destacado), flowcharts (Mermaid) e estruturas de dados
@@ -2469,9 +2032,77 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Verificação de `exportar.json` e setup lazy por plataforma
    - Procedimento de exportação para Notion, Obsidian, PDF e GitHub
 
-9. **Substituir todas as variáveis** em todos os arquivos gerados
-10. **Validar com checklist**
-11. **Apresentar ao usuário** a lista de arquivos gerados
+9. **Criar o comando `/caderno`** — gerar `.claude/commands/caderno.md` no caderno com o menu interativo dos processos do dia a dia:
+
+   ```markdown
+   Apresente ao usuário o menu de operações do caderno usando AskUserQuestion:
+
+   Q: "Qual operação deseja realizar?"
+      A) 📝 Transcrever aula — capturas/manuscritos → transcricao.md
+      B) ⚙️ Processar aula — materiais da aula → arquivo de conteúdo
+      C) 🖼️ Gerar imagens — prompts pendentes → conteudos/imagens/
+      D) 📤 Exportar conteúdo — sincronizar com a plataforma de estudo
+
+   Após a seleção, leia a seção correspondente em instrucoes/ e execute a operação.
+   ```
+
+   **Fluxos interativos de cada operação do caderno:**
+
+   **D) Transcrever aula:**
+   - Perguntar qual aula (texto livre)
+   - Se `{{TRATAMENTO_VISUAIS_MANUSCRITOS}}` não definido → AskUserQuestion:
+     ```
+     Q: "Tratamento de elementos visuais nos manuscritos:"
+        A) 📝 Descrição textual detalhada
+        B) 🎨 Prompt para geração de imagem por IA
+        C) 📐 Diagrama/notação da área (Mermaid, UML…)
+        D) 🔀 Combinação: descrição + recurso técnico
+     ```
+   - Ao final → AskUserQuestion:
+     ```
+     Q: "Deseja fazer alguma alteração na transcrição?"
+        A) ✅ Não — transcrição aprovada
+        B) 🔧 Sim — informar as alterações
+     ```
+
+   **E) Processar aula:**
+   - Perguntar qual aula (texto livre)
+   - Ler os materiais da aula e inferir automaticamente o tópico comparando com `conteudos/`
+   - Se identificado com confiança: processar diretamente sem perguntar
+   - Se não identificado (ambíguo ou novo) → AskUserQuestion:
+     ```
+     Q: "Não consegui identificar o tópico. Qual arquivo recebe o conteúdo?"
+        [listar arquivos em conteudos/ — até 4 opções]
+        (se >4 ou tópico novo: texto livre com nome do arquivo)
+     ```
+
+   **F) Gerar imagens:**
+   - AskUserQuestion:
+     ```
+     Q: "Escopo de geração:"
+        A) 🖼️ Todas as pendentes — processar todos os prompts
+        B) 📄 Apenas um arquivo — informar qual
+     ```
+
+   **G) Exportar conteúdo:**
+   - Se `exportar.json` existe → AskUserQuestion:
+     ```
+     Q: "Confirmar exportação para [PLATAFORMA]?"
+        A) ✅ Sim — exportar agora
+        B) 🔧 Mudar plataforma — reconfigurar exportar.json
+     ```
+   - Se `exportar.json` não existe → AskUserQuestion:
+     ```
+     Q: "Para qual plataforma exportar?"
+        A) 📘 Notion
+        B) 📝 Obsidian
+        C) 📄 PDF
+        D) 🐙 GitHub / GitHub Pages
+     ```
+
+10. **Substituir todas as variáveis** em todos os arquivos gerados
+11. **Validar com checklist**
+12. **Apresentar ao usuário** a lista de arquivos gerados
 
 ---
 

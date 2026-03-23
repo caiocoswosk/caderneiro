@@ -50,11 +50,11 @@ O Caderneiro é um conjunto de instruções para agentes de IA (Claude Code ou O
 
 - **Como criar um caderno** para uma disciplina — a partir da ementa, gera a estrutura completa automaticamente
 - **Como transcrever uma aula** — converte fotos do quadro (`capturas/`) em `transcricao.md` com verificação de inconsistências e correção automática
-- **Como processar uma aula** — usa a transcrição, PDFs, código ou qualquer material dentro da pasta da aula para estruturar o conteúdo no arquivo de tópico correspondente
+- **Como processar uma aula** — usa a transcrição, PDFs, código ou qualquer material dentro da pasta da aula para estruturar o conteúdo no arquivo de tópico correspondente; identifica automaticamente o tópico pelo conteúdo
 - **Como gerar imagens** — produz diagramas a partir de prompts gerados durante o processamento
-- **Como exportar o conteúdo** — sincroniza os arquivos gerados com a plataforma de estudo escolhida: Notion (com upload automático de imagens via API), Obsidian, PDF ou GitHub
+- **Como exportar o conteúdo** — sincroniza os arquivos gerados com a plataforma de estudo escolhida: Notion (com upload automático de imagens via API e emoji como ícone da página), Obsidian, PDF ou GitHub
 
-Tudo a partir de uma conversa com o agente.
+Toda interação acontece via **menus interativos**: o agente apresenta opções numeradas usando o recurso nativo de menus do Claude Code / OpenCode — sem precisar digitar comandos.
 
 ---
 
@@ -62,30 +62,34 @@ Tudo a partir de uma conversa com o agente.
 
 ```
 caderneiro/
-├── README.md           ← este arquivo
-├── CLAUDE.md           ← ponto de entrada para Claude Code
-├── AGENTS.md           ← ponto de entrada para OpenCode
-├── caderneiro.md       ← guia completo de operações
-└── cadernos/           ← cadernos criados aqui ficam no .gitignore
+├── README.md                        ← este arquivo
+├── CLAUDE.md                        ← ponto de entrada para Claude Code
+├── AGENTS.md                        ← ponto de entrada para OpenCode
+├── caderneiro.md                    ← guia completo de operações
+├── .claude/commands/caderneiro.md   ← comando /caderneiro (Claude Code)
+└── cadernos/                        ← cadernos criados aqui ficam no .gitignore
 ```
 
 Cada **caderno gerado** tem a seguinte estrutura:
 
 ```
 nome-da-disciplina/
-├── CLAUDE.md           ← contexto lean para Claude Code
-├── AGENTS.md           ← contexto lean para OpenCode  (se configurado)
-├── opencode.json       ← config multi-arquivo OpenCode (se configurado)
+├── CLAUDE.md                        ← contexto lean para Claude Code
+├── AGENTS.md                        ← contexto lean para OpenCode (se configurado)
+├── opencode.json                    ← config multi-arquivo OpenCode (se configurado)
+├── .claude/commands/caderno.md      ← comando /caderno (Claude Code)
 ├── instrucoes/
 │   ├── _padroes.md             ← padrões compartilhados (formatação, exercícios...)
 │   ├── transcrever-aula.md     ← operação: fotos do quadro → transcricao.md
 │   ├── processar-aula.md       ← operação: materiais da aula → conteúdo estruturado
 │   ├── gerar-imagens.md        ← operação: prompts → imagens
-│   └── exportar-conteudo.md    ← operação: sincronizar com plataforma de estudo
+│   ├── exportar-conteudo.md    ← operação: sincronizar com plataforma de estudo
+│   └── scripts/
+│       └── push_notion.py      ← script customizado de export para o Notion
 ├── conteudos/
-│   └── 1-topico.md         ← conteúdo gerado, um arquivo por tópico
+│   └── 🔗 1-topico.md          ← conteúdo gerado com emoji, um arquivo por tópico
 └── aulas/
-    └── aula-XX/            ← materiais brutos originais
+    └── aula-XX/                ← materiais brutos originais
 ```
 
 ---
@@ -103,22 +107,30 @@ nome-da-disciplina/
 
 1. Clone ou baixe este repositório
 2. Abra a pasta `caderneiro/` no Claude Code ou OpenCode
-3. Peça ao agente: **"Criar caderno"**
-4. Responda às perguntas sobre a disciplina (ou forneça a ementa — o agente preenche o resto)
-5. Comece a usar: envie fotos do quadro, peça para processar uma aula, gere imagens
+3. Digite **`/caderneiro`** (Claude Code) ou **`caderneiro`** (OpenCode) — o menu aparece automaticamente
+4. Selecione **A) Criar caderno** e responda às perguntas (ou forneça a ementa — o agente preenche o resto)
+5. Abra a pasta do caderno criado e use **`/caderno`** para acessar as operações do dia a dia
 
 ---
 
 ## Operações disponíveis
 
-| Operação | O que faz |
-|----------|-----------|
-| **Criar caderno** | Configura um novo caderno para uma disciplina |
-| **Atualizar/Modificar caderno** | Propaga melhorias do caderneiro ou ajusta configurações |
-| **Transcrever aula** | Converte fotos do quadro em transcrição revisada |
-| **Processar aula** | Transforma qualquer material da pasta da aula (transcrição, PDF, código, imagens) em conteúdo estruturado |
-| **Gerar imagens** | Produz imagens de diagramas a partir dos prompts e remove os indicadores de pendência nos conteúdos |
-| **Exportar conteúdo** | Sincroniza `conteudos/` + imagens com Notion, Obsidian, PDF ou GitHub |
+### Operações do caderneiro — `/caderneiro`
+
+| Letra | Operação | O que faz |
+|-------|----------|-----------|
+| **A** | Criar caderno | Configura um novo caderno para uma disciplina a partir da ementa |
+| **B** | Atualizar caderno | Propaga melhorias do caderneiro para um caderno existente |
+| **C** | Modificar caderno | Ajusta configurações de um caderno existente |
+
+### Operações do caderno — `/caderno`
+
+| Letra | Operação | O que faz |
+|-------|----------|-----------|
+| **D** | Transcrever aula | Converte fotos do quadro em transcrição revisada |
+| **E** | Processar aula | Transforma qualquer material da pasta da aula em conteúdo estruturado; identifica o tópico automaticamente |
+| **F** | Gerar imagens | Produz imagens de diagramas a partir dos prompts pendentes |
+| **G** | Exportar conteúdo | Sincroniza `conteudos/` + imagens com Notion, Obsidian, PDF ou GitHub |
 
 ---
 
