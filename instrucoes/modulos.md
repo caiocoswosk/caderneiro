@@ -273,7 +273,7 @@ A) 📝 Descrição textual detalhada
       Descrevo o conteúdo visual em itálico no corpo do texto.
 
 B) 🎨 Prompt para geração de imagem por IA
-      Gero um bloco de prompt detalhado em `conteudos/prompts/N-nome-topico.md`
+      Gero um bloco de prompt detalhado em `aulas/aula-XX/prompts/N-nome-topico.md`
       para geração posterior. No ponto do texto, uso referência:
       ![descrição](caminho/para/imagem.png)
 
@@ -318,7 +318,7 @@ Antes de transcrever, avaliar criticamente a sequência:
 
 Para cada elemento visual encontrado, aplicar `{{TRATAMENTO_VISUAIS_MANUSCRITOS}}`:
 - No ponto do corpo, inserir descrição e/ou referência de imagem
-- Se opção B ou D: salvar os prompts em `conteudos/prompts/N-nome-topico.md` (arquivo separado, **nunca** no arquivo de conteúdo), numerados de 01 em diante — a pasta `conteudos/prompts/` é ignorada na exportação para o Notion
+- Se opção B ou D: salvar os prompts em `aulas/aula-XX/prompts/N-nome-topico.md` (arquivo separado, **nunca** no arquivo de conteúdo), numerados de 01 em diante — a pasta `prompts/` dentro da aula é ignorada na exportação para o Notion
 
 **Passo 4 — Geração do arquivo**
 
@@ -353,7 +353,7 @@ Criar (ou sobrescrever) `aulas/aula-XX/{{ARQUIVO_TRANSCRICAO}}` com a estrutura:
 
 **Arquivo separado de prompts** (apenas se `{{TRATAMENTO_VISUAIS_MANUSCRITOS}}` == B ou D):
 
-Criar `conteudos/prompts/N-nome-topico.md`:
+Criar `aulas/aula-XX/prompts/N-nome-topico.md`:
 ```markdown
 ## 🎨 Prompts para Geração de Imagens
 
