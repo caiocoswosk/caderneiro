@@ -78,7 +78,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
 
    **Menu (`menu.md`)** — ambas ferramentas:
    ```markdown
-   Apresente ao usuário o menu de operações do caderno usando AskUserQuestion:
+   Use AskUserQuestion com o texto exato abaixo (não adicione texto antes):
 
    Q: "Qual operação deseja realizar?"
       A) 📝 Transcrever aula → execute /transcrever-aula

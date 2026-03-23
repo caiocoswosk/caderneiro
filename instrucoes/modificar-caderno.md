@@ -5,12 +5,13 @@ Usar quando o usuário quer alterar as configurações do caderno (não relacion
 
 **Passo 0 — Identificar o caderno**
 
-Perguntar ao usuário qual caderno deseja modificar (texto livre):
+→ Usar AskUserQuestion com o texto exato abaixo (não reformule):
 ```
-"Qual caderno deseja modificar?"
-- Listar cadernos em cadernos/ (se existirem)
-- Ou informar caminho externo
+Q: "Qual caderno deseja modificar?"
+   [listar cadernos em cadernos/ como opções, se existirem]
+   + opção: "Informar caminho externo"
 ```
+Se "Informar caminho externo": perguntar o caminho como texto livre.
 
 ---
 

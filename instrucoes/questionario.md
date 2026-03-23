@@ -7,7 +7,7 @@ Quando um usuário solicitar **Criar caderno** (nova disciplina) ou **Modificar 
 
 1. **Identificar a operação** — Criar (sem caderno existente) ou Modificar (caderno já existe)
 2. **Começar pela ementa** — antes de qualquer pergunta, verificar se há arquivo de ementa disponível
-3. **Fazer perguntas de forma conversacional**, seção por seção
+3. **Copiar o texto de cada pergunta verbatim** — não reformule, não adicione introdução ou contexto antes das perguntas
 4. **Usar a ementa ou configuração atual para pré-preencher e sugerir respostas** sempre que possível
 5. **Confirmar entendimento antes de avançar**
 6. **Documentar todas as respostas para uso posterior**
@@ -18,7 +18,7 @@ Quando um usuário solicitar **Criar caderno** (nova disciplina) ou **Modificar 
 
 **Apenas para "Criar caderno". Pular para Passo 0 se for Atualizar/Modificar.**
 
-**→ Usar AskUserQuestion (Chamada 1):**
+**→ Usar AskUserQuestion (Chamada 1) com o texto exato abaixo (não reformule):**
 ```
 Q1: "Onde deseja criar o caderno?"
     A) 📁 No caderneiro — cadernos/[nome-disciplina]/ (privado, .gitignore)
@@ -51,12 +51,15 @@ Se Q2 = Sim: solicitar o arquivo/conteúdo e extrair automaticamente:
 
 Se Q2 = Não: continuar para Seção 1 normalmente.
 
-Após ler a ementa, apresentar um resumo do que foi extraído e pedir confirmação:
+Após ler a ementa, apresentar um resumo do que foi extraído e pedir confirmação usando exatamente este texto:
 ```
-"Extraí as seguintes informações da ementa:
+"Extraí da ementa:
   - Disciplina: [valor]
-  - Professor: [valor]
-  - ...
+  - Código: [valor]
+  - Período: [valor]
+  - Professor(a): [valor]
+  - Instituição: [valor]
+  - Carga horária: [valor]
 Está correto? Alguma correção?"
 ```
 
@@ -67,46 +70,28 @@ Está correto? Alguma correção?"
 **Objetivo:** Confirmar ou completar informações básicas.
 Se a ementa foi fornecida no Passo 0, pular as perguntas já preenchidas e perguntar apenas as que ficaram em branco.
 
-**1.1. Nome da Disciplina** *(obrigatório)*
-```
-Pergunta: "Qual é o nome completo da disciplina?"
-Exemplo: "Estrutura de Dados II"
-Armazenar em: {{NOME_DISCIPLINA}}
-```
+**→ Usar AskUserQuestion (Chamada 1.5) com o texto exato abaixo (não reformule):**
 
-**1.2. Código da Disciplina** *(opcional)*
-```
-Pergunta: "Qual é o código da disciplina? (pode pular)"
-Exemplo: "DCE16376"
-Armazenar em: {{CODIGO_DISCIPLINA}}
-```
+Para cada campo ainda não preenchido pela ementa, perguntar em sequência como texto livre:
 
-**1.3. Período Letivo** *(opcional)*
 ```
-Pergunta: "Qual período letivo? (pode pular)"
-Exemplo: "2026/1"
-Armazenar em: {{PERIODO}}
-```
+Q1: "Nome completo da disciplina?"
+    Armazenar em: {{NOME_DISCIPLINA}} (obrigatório)
 
-**1.4. Professor(a)** *(opcional)*
-```
-Pergunta: "Qual o nome do(a) professor(a)? (pode pular)"
-Exemplo: "Profa. Dra. Maria Silva"
-Armazenar em: {{PROFESSOR}}
-```
+Q2: "Código da disciplina? (pode pular — ex.: DCE16376)"
+    Armazenar em: {{CODIGO_DISCIPLINA}}
 
-**1.5. Instituição** *(opcional)*
-```
-Pergunta: "Qual instituição de ensino? (pode pular)"
-Exemplo: "UFES - Campus São Mateus"
-Armazenar em: {{INSTITUICAO}}
-```
+Q3: "Período letivo? (pode pular — ex.: 2026/1)"
+    Armazenar em: {{PERIODO}}
 
-**1.6. Carga Horária** *(opcional)*
-```
-Pergunta: "Qual a carga horária semanal/total? (pode pular)"
-Exemplo: "60h totais (4h/semana)"
-Armazenar em: {{CARGA_HORARIA}}
+Q4: "Nome do(a) professor(a)? (pode pular)"
+    Armazenar em: {{PROFESSOR}}
+
+Q5: "Instituição de ensino? (pode pular — ex.: UFES - Campus São Mateus)"
+    Armazenar em: {{INSTITUICAO}}
+
+Q6: "Carga horária? (pode pular — ex.: 60h totais / 4h/semana)"
+    Armazenar em: {{CARGA_HORARIA}}
 ```
 
 ---
@@ -126,7 +111,7 @@ Inferência baseada na ementa:
 ```
 Se o tipo puder ser inferido, posicioná-lo **em primeiro** na lista com `(Recomendado)`.
 
-**→ Usar AskUserQuestion (Chamada 2):**
+**→ Usar AskUserQuestion (Chamada 2) com o texto exato abaixo (não reformule):**
 ```
 Q1: "Tipo de curso?"
     A) 💻 Técnica/Prática — >60% código/implementação (Recomendado se inferido)
@@ -169,7 +154,7 @@ Armazenar em: {{FORMATO_CALLOUT}} e {{SUPORTE_DIAGRAMAS}}
 
 **Objetivo:** Selecionar componentes adicionais para o plano.
 
-**→ Usar AskUserQuestion (Chamada 3) com multiSelect:**
+**→ Usar AskUserQuestion (Chamada 3) com multiSelect e o texto exato abaixo (não reformule):**
 ```
 Q1 (multiSelect): "Módulos de conteúdo — selecione os que deseja incluir:"
     A) 🔍 Análise de Código — comentários linha a linha, análise de complexidade
@@ -349,7 +334,7 @@ Antes de incluir a solução de um exercício:
 
 **Objetivo:** Definir organização interna da documentação.
 
-**→ Usar AskUserQuestion (Chamada 4) com multiSelect:**
+**→ Usar AskUserQuestion (Chamada 4) com multiSelect e o texto exato abaixo (não reformule):**
 ```
 Q1 (multiSelect): "Elementos de estrutura — selecione os que deseja:"
     A) 📋 Tabela de controle de progresso — status por tópico/aula
@@ -366,7 +351,7 @@ Armazenar em: `{{INCLUIR_TABELA_CONTROLE}}`, `{{INCLUIR_OBJETIVOS}}`, `{{INCLUIR
 
 **Objetivo:** Personalizar aspectos visuais e de tom.
 
-**→ Usar AskUserQuestion (Chamada 5):**
+**→ Usar AskUserQuestion (Chamada 5) com o texto exato abaixo (não reformule):**
 ```
 Q1: "Tom de linguagem?"
     A) 📘 Formal — acadêmico ("O algoritmo Merge Sort utiliza...")
@@ -401,7 +386,7 @@ Valores: `FORMAL|DIDATICO|DIRETO`, `ALTO|MEDIO|BAIXO`, `ESTUDANTE_ACOMPANHANDO|A
 
 **Objetivo:** Identificar tipos de arquivos a processar.
 
-**→ Usar AskUserQuestion (Chamada 6) com multiSelect:**
+**→ Usar AskUserQuestion (Chamada 6) com multiSelect e o texto exato abaixo (não reformule):**
 ```
 Q1 (multiSelect): "Tipos de materiais — parte 1:"
     A) 📄 PDFs — slides, apostilas, artigos
@@ -482,7 +467,7 @@ sem perguntar novamente — salvo instrução explícita do usuário.
 
 **Objetivo:** Ajustes finos e preferências especiais.
 
-**→ Usar AskUserQuestion (Chamada 7):**
+**→ Usar AskUserQuestion (Chamada 7) com o texto exato abaixo (não reformule):**
 ```
 Q1: "Numeração das aulas?"
     A) 01, 02, 03 — dois dígitos (Recomendado)
@@ -538,7 +523,7 @@ Apresentar o resumo de todas as variáveis coletadas em texto, depois usar AskUs
 👥 PÚBLICO: {{PUBLICO_ALVO}} | 📁 MATERIAIS: {{TIPOS_MATERIAIS}}
 ```
 
-**→ Usar AskUserQuestion (Chamada 8):**
+**→ Usar AskUserQuestion (Chamada 8) com o texto exato abaixo (não reformule):**
 ```
 Q: "Tudo correto?"
    A) ✅ Sim — gerar o caderno agora

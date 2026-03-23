@@ -5,12 +5,13 @@ Usar quando o caderneiro evoluiu (novos módulos, procedimentos revisados, padr�
 
 **Passo 0 — Identificar o caderno**
 
-Perguntar ao usuário qual caderno deseja atualizar (texto livre):
+→ Usar AskUserQuestion com o texto exato abaixo (não reformule):
 ```
-"Qual caderno deseja atualizar?"
-- Listar cadernos em cadernos/ (se existirem)
-- Ou informar caminho externo
+Q: "Qual caderno deseja atualizar?"
+   [listar cadernos em cadernos/ como opções, se existirem]
+   + opção: "Informar caminho externo"
 ```
+Se "Informar caminho externo": perguntar o caminho como texto livre.
 
 ---
 
