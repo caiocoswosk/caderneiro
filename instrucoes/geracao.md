@@ -118,8 +118,11 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    **Fluxos interativos de cada operação do caderno:**
 
    **D) Transcrever aula:**
-   - Perguntar qual aula (texto livre)
-   - Se `{{TRATAMENTO_VISUAIS_MANUSCRITOS}}` não definido → AskUserQuestion:
+   - → Usar AskUserQuestion com o texto exato abaixo (não reformule):
+     ```
+     Q: "Qual aula deseja transcrever? (informe número ou nome do arquivo)"
+     ```
+   - Se `{{TRATAMENTO_VISUAIS_MANUSCRITOS}}` não definido → usar AskUserQuestion com o texto exato abaixo (não reformule):
      ```
      Q: "Tratamento de elementos visuais nos manuscritos:"
         A) 📝 Descrição textual detalhada
@@ -127,7 +130,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
         C) 📐 Diagrama/notação da área (Mermaid, UML…)
         D) 🔀 Combinação: descrição + recurso técnico
      ```
-   - Ao final → AskUserQuestion:
+   - Ao final → usar AskUserQuestion com o texto exato abaixo (não reformule):
      ```
      Q: "Deseja fazer alguma alteração na transcrição?"
         A) ✅ Não — transcrição aprovada
@@ -135,10 +138,13 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
      ```
 
    **E) Processar aula:**
-   - Perguntar qual aula (texto livre)
+   - → Usar AskUserQuestion com o texto exato abaixo (não reformule):
+     ```
+     Q: "Qual aula deseja processar? (informe número ou nome do arquivo)"
+     ```
    - Ler os materiais da aula e inferir automaticamente o tópico comparando com `conteudos/`
    - Se identificado com confiança: processar diretamente sem perguntar
-   - Se não identificado (ambíguo ou novo) → AskUserQuestion:
+   - Se não identificado (ambíguo ou novo) → usar AskUserQuestion com o texto exato abaixo (não reformule):
      ```
      Q: "Não consegui identificar o tópico. Qual arquivo recebe o conteúdo?"
         [listar arquivos em conteudos/ — até 4 opções]
@@ -146,7 +152,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
      ```
 
    **F) Gerar imagens:**
-   - AskUserQuestion:
+   - → Usar AskUserQuestion com o texto exato abaixo (não reformule):
      ```
      Q: "Escopo de geração:"
         A) 🖼️ Todas as pendentes — processar todos os prompts
@@ -154,13 +160,13 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
      ```
 
    **G) Exportar conteúdo:**
-   - Se `exportar.json` existe → AskUserQuestion:
+   - Se `exportar.json` existe → usar AskUserQuestion com o texto exato abaixo (não reformule):
      ```
      Q: "Confirmar exportação para [PLATAFORMA]?"
         A) ✅ Sim — exportar agora
         B) 🔧 Mudar plataforma — reconfigurar exportar.json
      ```
-   - Se `exportar.json` não existe → AskUserQuestion:
+   - Se `exportar.json` não existe → usar AskUserQuestion com o texto exato abaixo (não reformule):
      ```
      Q: "Para qual plataforma exportar?"
         A) 📘 Notion
@@ -181,15 +187,14 @@ Sincroniza os arquivos de `conteudos/` + imagens com a plataforma de estudo esco
 
 **Passo 1 — Verificar configuração**
 
-Checar se `exportar.json` existe na raiz do caderno. Se não existir, perguntar:
+Checar se `exportar.json` existe na raiz do caderno. Se não existir, → usar AskUserQuestion com o texto exato abaixo (não reformule):
 
 ```
-"Para qual plataforma deseja exportar o conteúdo?"
-
-A) Notion
-B) Obsidian
-C) PDF
-D) GitHub / GitHub Pages
+Q: "Para qual plataforma exportar?"
+   A) 📘 Notion
+   B) 📝 Obsidian
+   C) 📄 PDF
+   D) 🐙 GitHub / GitHub Pages
 ```
 
 Exibir o tutorial de setup da plataforma escolhida (ver abaixo) e, ao final, salvar `exportar.json`.
