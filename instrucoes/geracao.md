@@ -62,6 +62,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Regras para grafos (prompt destacado), flowcharts (Mermaid) e estruturas de dados
    - Paleta de cores, padrões visuais e estrutura de diretórios de imagens
    - Instruções para uso do script `gerar-imagens.py`
+   - Fontes de prompts: transcrição salva em `aulas/aula-XX/prompts/`; processamento salva em `conteudos/prompts/` — gerar-imagens lê de ambas; ambas ignoradas na exportação
 
    **`instrucoes/exportar-conteudo.md`** (sempre gerado):
    - Verificação de `exportar.json` e setup lazy por plataforma
