@@ -93,7 +93,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
 
    Claude Code (`.claude/commands/[operacao].md`):
    ```markdown
-   Leia a primeira linha de `instrucoes/[operacao].md` para extrair o nível do modelo (`<!-- modelo: NIVEL -->`). Consulte `instrucoes/_padroes.md` (seção Modelos Recomendados) para verificar se o modelo ativo corresponde ao nível recomendado. Se o modelo ativo for **superior** ao recomendado, sugira a troca via `/model` e **pare — aguarde a decisão do usuário** antes de prosseguir. Se for inferior, sugira mas prossiga. Se compatível, prossiga sem comentários.
+   Leia a primeira linha de `instrucoes/[operacao].md` para extrair o nível do modelo (`<!-- modelo: NIVEL -->`). Consulte `instrucoes/_padroes.md` (seção Modelos Recomendados) para verificar se o modelo ativo corresponde ao nível recomendado. Se o modelo ativo for **diferente** do recomendado, sugira a troca via `/model` e **pare — aguarde a decisão do usuário** antes de prosseguir. Se compatível, prossiga sem comentários.
 
    Em seguida, leia `instrucoes/[operacao].md` por completo e execute a operação.
    ```
@@ -103,7 +103,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    ---
    description: [descrição curta da operação]
    ---
-   Leia a primeira linha de `instrucoes/[operacao].md` para extrair o nível do modelo (`<!-- modelo: NIVEL -->`). Consulte `instrucoes/_padroes.md` (seção Modelos Recomendados) para verificar se o modelo ativo corresponde ao nível recomendado. Se o modelo ativo for **superior** ao recomendado, sugira a troca via `/models` e **pare — aguarde a decisão do usuário** antes de prosseguir. Se for inferior, sugira mas prossiga. Se compatível, prossiga sem comentários.
+   Leia a primeira linha de `instrucoes/[operacao].md` para extrair o nível do modelo (`<!-- modelo: NIVEL -->`). Consulte `instrucoes/_padroes.md` (seção Modelos Recomendados) para verificar se o modelo ativo corresponde ao nível recomendado. Se o modelo ativo for **diferente** do recomendado, sugira a troca via `/models` e **pare — aguarde a decisão do usuário** antes de prosseguir. Se compatível, prossiga sem comentários.
 
    Em seguida, leia `instrucoes/[operacao].md` por completo e execute a operação.
    ```

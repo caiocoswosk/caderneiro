@@ -54,7 +54,7 @@ O Caderneiro é um conjunto de instruções para agentes de IA (Claude Code ou O
 - **Como gerar imagens** — produz diagramas a partir de prompts gerados durante o processamento
 - **Como exportar o conteúdo** — sincroniza os arquivos gerados com a plataforma de estudo escolhida: Notion (com upload automático de imagens via API e emoji como ícone da página), Obsidian, PDF ou GitHub
 
-Toda interação acontece via **menus interativos**: o agente apresenta opções numeradas usando o recurso nativo de menus do Claude Code / OpenCode — sem precisar digitar comandos.
+Toda interação acontece via **menus interativos** ou **skills diretas**: o agente apresenta opções usando o recurso nativo de menus do Claude Code / OpenCode, e cada operação tem sua própria skill invocável diretamente.
 
 ---
 
@@ -62,45 +62,70 @@ Toda interação acontece via **menus interativos**: o agente apresenta opções
 
 ```
 caderneiro/
-├── README.md                        ← este arquivo
-├── CLAUDE.md                        ← ponto de entrada para Claude Code
-├── AGENTS.md                        ← ponto de entrada para OpenCode
-├── caderneiro.md                    ← visão geral + tabela de dispatch
-├── instrucoes/                      ← procedimentos por operação (carregados sob demanda)
-├── .claude/commands/caderneiro.md   ← comando /caderneiro (Claude Code)
-└── cadernos/                        ← cadernos criados aqui ficam no .gitignore
+├── README.md
+├── CLAUDE.md                         ← ponto de entrada para Claude Code
+├── AGENTS.md                         ← ponto de entrada para OpenCode
+├── caderneiro.md                     ← visão geral + tabela de dispatch
+├── instrucoes/                       ← procedimentos por operação (carregados sob demanda)
+│   ├── criar-caderno.md
+│   ├── atualizar-caderno.md
+│   ├── modificar-caderno.md
+│   ├── questionario.md
+│   ├── geracao.md
+│   ├── templates-base.md
+│   ├── modulos.md
+│   ├── adaptadores-plataforma.md
+│   └── modelos.md                    ← orquestração de modelos por operação
+├── .claude/commands/                 ← skills Claude Code
+│   ├── menu.md                       ← /menu
+│   ├── criar-caderno.md              ← /criar-caderno
+│   ├── atualizar-caderno.md          ← /atualizar-caderno
+│   └── modificar-caderno.md         ← /modificar-caderno
+├── .opencode/commands/               ← skills OpenCode
+│   ├── menu.md                       ← /menu
+│   ├── criar-caderno.md              ← /criar-caderno
+│   ├── atualizar-caderno.md          ← /atualizar-caderno
+│   └── modificar-caderno.md         ← /modificar-caderno
+└── cadernos/                         ← cadernos criados aqui ficam no .gitignore
 ```
 
 Cada **caderno gerado** tem a seguinte estrutura:
 
 ```
 nome-da-disciplina/
-├── CLAUDE.md                        ← contexto lean para Claude Code
-├── AGENTS.md                        ← contexto lean para OpenCode (se configurado)
-├── opencode.json                    ← config multi-arquivo OpenCode (se configurado)
-├── .claude/commands/caderno.md      ← comando /caderno (Claude Code)
+├── CLAUDE.md                         ← contexto lean para Claude Code
+├── AGENTS.md                         ← contexto lean para OpenCode (se configurado)
+├── opencode.json                     ← config multi-arquivo OpenCode (se configurado)
+├── .claude/commands/                 ← skills Claude Code
+│   ├── menu.md                       ← /menu
+│   ├── transcrever-aula.md           ← /transcrever-aula
+│   ├── processar-aula.md             ← /processar-aula
+│   ├── gerar-imagens.md              ← /gerar-imagens
+│   └── exportar-conteudo.md          ← /exportar-conteudo
+├── .opencode/commands/               ← skills OpenCode (se configurado)
+│   └── [mesmas skills com frontmatter description:]
 ├── instrucoes/
-│   ├── _padroes.md             ← padrões compartilhados (formatação, exercícios...)
-│   ├── transcrever-aula.md     ← operação: fotos do quadro → transcricao.md
-│   ├── processar-aula.md       ← operação: materiais da aula → conteúdo estruturado
-│   ├── gerar-imagens.md        ← operação: prompts → imagens
-│   ├── exportar-conteudo.md    ← operação: sincronizar com plataforma de estudo
+│   ├── _padroes.md                   ← padrões compartilhados (formatação, exercícios...)
+│   ├── transcrever-aula.md
+│   ├── processar-aula.md
+│   ├── gerar-imagens.md
+│   ├── exportar-conteudo.md
 │   └── scripts/
-│       └── push_notion.py      ← script customizado de export para o Notion
+│       └── push_notion.py            ← script customizado de export para o Notion
 ├── conteudos/
-│   └── 🔗 1-topico.md          ← conteúdo gerado com emoji, um arquivo por tópico
+│   └── 🔗 1-topico.md                ← conteúdo gerado com emoji, um arquivo por tópico
 └── aulas/
-    └── aula-XX/                ← materiais brutos originais
+    └── aula-XX/                      ← materiais brutos originais
 ```
 
 ---
 
 ## Ferramentas suportadas
 
-| Ferramenta | Arquivo de contexto | Multi-arquivo |
+| Ferramenta | Arquivo de contexto | Skills |
 |------------|--------------------|----|
-| [Claude Code](https://claude.ai/code) | `CLAUDE.md` | via `instrucoes/` (on-demand) |
-| [OpenCode](https://opencode.ai) | `AGENTS.md` | via `opencode.json` |
+| [Claude Code](https://claude.ai/code) | `CLAUDE.md` | `.claude/commands/` |
+| [OpenCode](https://opencode.ai) | `AGENTS.md` + `opencode.json` | `.opencode/commands/` |
 
 ---
 
@@ -108,30 +133,46 @@ nome-da-disciplina/
 
 1. Clone ou baixe este repositório
 2. Abra a pasta `caderneiro/` no Claude Code ou OpenCode
-3. Digite **`/caderneiro`** (Claude Code) ou **`caderneiro`** (OpenCode) — o menu aparece automaticamente
+3. Use **`/menu`** para ver as operações disponíveis
 4. Selecione **A) Criar caderno** e responda às perguntas (ou forneça a ementa — o agente preenche o resto)
-5. Abra a pasta do caderno criado e use **`/caderno`** para acessar as operações do dia a dia
+5. Abra a pasta do caderno criado e use **`/menu`** para acessar as operações do dia a dia
 
 ---
 
 ## Operações disponíveis
 
-### Operações do caderneiro — `/caderneiro`
+### Operações do caderneiro
 
-| Letra | Operação | O que faz |
-|-------|----------|-----------|
-| **A** | Criar caderno | Configura um novo caderno para uma disciplina a partir da ementa |
-| **B** | Atualizar caderno | Propaga melhorias do caderneiro para um caderno existente |
-| **C** | Modificar caderno | Ajusta configurações de um caderno existente |
+| Comando | Operação | O que faz |
+|---------|----------|-----------|
+| `/menu` | Menu principal | Apresenta as opções abaixo |
+| `/criar-caderno` | Criar caderno | Configura um novo caderno para uma disciplina a partir da ementa |
+| `/atualizar-caderno` | Atualizar caderno | Propaga melhorias do caderneiro para um caderno existente |
+| `/modificar-caderno` | Modificar caderno | Ajusta configurações de um caderno existente |
 
-### Operações do caderno — `/caderno`
+### Operações do caderno (dia a dia)
 
-| Letra | Operação | O que faz |
-|-------|----------|-----------|
-| **D** | Transcrever aula | Converte fotos do quadro em transcrição revisada |
-| **E** | Processar aula | Transforma qualquer material da pasta da aula em conteúdo estruturado; identifica o tópico automaticamente |
-| **F** | Gerar imagens | Produz imagens de diagramas a partir dos prompts pendentes |
-| **G** | Exportar conteúdo | Sincroniza `conteudos/` + imagens com Notion, Obsidian, PDF ou GitHub |
+| Comando | Operação | O que faz |
+|---------|----------|-----------|
+| `/menu` | Menu principal | Apresenta as opções abaixo |
+| `/transcrever-aula` | Transcrever aula | Converte fotos do quadro em transcrição revisada |
+| `/processar-aula` | Processar aula | Transforma qualquer material da pasta da aula em conteúdo estruturado; identifica o tópico automaticamente |
+| `/gerar-imagens` | Gerar imagens | Produz imagens de diagramas a partir dos prompts pendentes |
+| `/exportar-conteudo` | Exportar conteúdo | Sincroniza `conteudos/` + imagens com Notion, Obsidian, PDF ou GitHub |
+
+---
+
+## Orquestração de modelos
+
+O caderneiro recomenda automaticamente o modelo mais adequado para cada operação com base na complexidade da tarefa:
+
+| Nível | Operações | Exemplos (Anthropic) |
+|-------|-----------|---------------------|
+| **SIMPLES** | criar-caderno, modificar-caderno, gerar-imagens | haiku |
+| **MEDIO** | questionario, atualizar-caderno, transcrever-aula, exportar-conteudo | sonnet |
+| **COMPLEXO** | geracao, processar-aula | opus |
+
+Ao iniciar uma operação, o agente identifica o modelo ativo e compara com o nível recomendado. Se diferente, sugere troca e **para — aguarda a decisão do usuário** antes de prosseguir. Detalhes em `instrucoes/modelos.md`.
 
 ---
 

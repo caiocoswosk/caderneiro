@@ -115,8 +115,7 @@ Cada operação tem um nível de complexidade recomendado (**SIMPLES**, **MEDIO*
 **Como funciona:**
 - Cada arquivo em `instrucoes/` contém um comentário `<!-- modelo: NIVEL -->` na primeira linha
 - Ao iniciar uma operação, o agente lê o nível e consulta `instrucoes/modelos.md`
-- **Modelo superior ao recomendado** (ex: opus para SIMPLES): sugere troca e **para — aguarda decisão** do usuário antes de prosseguir (evita gasto desnecessário de tokens)
-- **Modelo inferior ao recomendado**: sugere troca mas prossegue normalmente
+- **Modelo diferente do recomendado** (superior ou inferior): sugere troca e **para — aguarda decisão** do usuário antes de prosseguir
 - **Modelo compatível**: prossegue sem comentários
 - O agente sempre recomenda um modelo **do mesmo provedor** que o modelo ativo
 

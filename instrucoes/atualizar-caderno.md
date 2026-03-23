@@ -77,7 +77,7 @@ Q: "Os commands deste caderno não verificam o modelo antes de executar. Deseja 
    B) ❌ Não — manter commands atuais
 ```
 
-Se **Sim**: reescrever cada command conforme o template atualizado em `instrucoes/geracao.md` do caderneiro (Etapa 9, seção "Skills individuais").
+Se **Sim**: reescrever cada command conforme o template atualizado em `instrucoes/geracao.md` do caderneiro (Etapa 9, seção "Skills individuais"). O texto de verificação correto usa "diferente" (não "superior"), pois qualquer divergência bloqueia.
 
 ---
 

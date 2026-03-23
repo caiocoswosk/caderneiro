@@ -142,10 +142,8 @@ Ao sugerir troca, **nunca** trocar de família (ex: de Claude para GPT). Apenas 
 1. Ler o comentário `<!-- modelo: NIVEL -->` na primeira linha do arquivo de instrução
 2. Identificar o nível do modelo ativo pela tabela de família correspondente
 3. Comparar o nível atual com o recomendado:
-   - **Modelo superior ao recomendado** (ex: opus para tarefa SIMPLES): sugerir troca e **parar — aguardar a decisão do usuário** antes de prosseguir. Isso evita gasto desnecessário de tokens em um modelo caro para uma tarefa simples.
+   - **Modelo diferente do recomendado** (superior ou inferior): sugerir troca e **parar — aguardar a decisão do usuário** antes de prosseguir.
      > "Esta operação recomenda nível **X**. Troque para **[modelo-alvo]** via `/models` (OpenCode) ou `/model` (Claude Code), ou confirme para continuar com o modelo atual."
-   - **Modelo inferior ao recomendado** (ex: haiku para tarefa COMPLEXO): sugerir troca mas **prosseguir** — o usuário pode não ter acesso ao modelo superior.
-     > "Esta operação recomenda nível **X**. Para melhores resultados, considere trocar para **[modelo-alvo]** via `/models` ou `/model`."
    - **Modelo compatível**: prosseguir sem comentários.
 
 ### Manutenção
