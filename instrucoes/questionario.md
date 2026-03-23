@@ -1,3 +1,4 @@
+<!-- modelo: MEDIO -->
 # Questionário Interativo
 
 ### 📝 Instruções para o Agente de IA
