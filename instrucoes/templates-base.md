@@ -17,10 +17,25 @@
 - ⚪ Referências (opcional)
 - ⚪ Mídia (opcional)
 
-**Estrutura de Aula Típica:**
+**Estrutura do Arquivo de Conteúdo:**
 
 ```markdown
+# EMOJI Nome do Tópico
+
+> ⏱️ **Tempo total de estudo:** Xh Ymin (N aulas)
+
+## Sumário
+
+| # | Aula | Tempo | Dificuldade |
+|---|------|-------|-------------|
+| XX | [Título da aula](#aula-xx-título-da-aula) | Xh Ymin | Básica/Intermediária/Avançada |
+
+---
+
 ## Aula XX: [Algoritmo/Estrutura]
+📅 Data de Adição: DD/MM/AAAA
+⏱️ Tempo Estimado de Estudo: Xh Ymin
+📊 Dificuldade: Básica/Intermediária/Avançada
 
 ### 📌 Objetivos
 - [ ] Entender o funcionamento do [algoritmo]
@@ -112,10 +127,25 @@
 - ✅ Referências (recomendado)
 - ⚪ Mídia (opcional)
 
-**Estrutura de Aula Típica:**
+**Estrutura do Arquivo de Conteúdo:**
 
 ```markdown
+# EMOJI Nome do Tópico
+
+> ⏱️ **Tempo total de estudo:** Xh Ymin (N aulas)
+
+## Sumário
+
+| # | Aula | Tempo | Dificuldade |
+|---|------|-------|-------------|
+| XX | [Título da aula](#aula-xx-título-da-aula) | Xh Ymin | Básica/Intermediária/Avançada |
+
+---
+
 ## Aula XX: [Conceito/Teoria]
+📅 Data de Adição: DD/MM/AAAA
+⏱️ Tempo Estimado de Estudo: Xh Ymin
+📊 Dificuldade: Básica/Intermediária/Avançada
 
 ### 📌 Objetivos
 - [ ] Compreender o conceito de [X]
@@ -209,10 +239,25 @@ mindmap
 - ⚪ Referências (opcional)
 - ⚪ Mídia (opcional)
 
-**Estrutura de Aula Típica:**
+**Estrutura do Arquivo de Conteúdo:**
 
 ```markdown
+# EMOJI Nome do Tópico
+
+> ⏱️ **Tempo total de estudo:** Xh Ymin (N aulas)
+
+## Sumário
+
+| # | Aula | Tempo | Dificuldade |
+|---|------|-------|-------------|
+| XX | [Título da aula](#aula-xx-título-da-aula) | Xh Ymin | Básica/Intermediária/Avançada |
+
+---
+
 ## Aula XX: [Tópico]
+📅 Data de Adição: DD/MM/AAAA
+⏱️ Tempo Estimado de Estudo: Xh Ymin
+📊 Dificuldade: Básica/Intermediária/Avançada
 
 ### 📌 Objetivos
 - [ ] Compreender teoria de [X]

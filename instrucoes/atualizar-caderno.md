@@ -15,91 +15,106 @@ Se "Informar caminho externo": perguntar o caminho como texto livre.
 
 ---
 
-**Passo 1a — Arquivos de contexto**
+**Passo 1 — Inventariar o caderno**
 
-Verificar os arquivos de contexto do caderno conforme a ferramenta configurada (`{{FERRAMENTA}}`):
-- `CLAUDE.md`: deve existir se `{{FERRAMENTA}} == CLAUDE_CODE` ou `AMBAS`
-- `AGENTS.md`: deve existir se `{{FERRAMENTA}} == OPENCODE` ou `AMBAS`
-- `opencode.json`: deve existir se `{{FERRAMENTA}} == OPENCODE` ou `AMBAS`
+Antes de comparar, extrair a configuração do caderno:
 
-Para cada arquivo ausente, **→ Usar AskUserQuestion:**
-```
-Q: "[arquivo].md está ausente. Deseja criar?"
-   A) ✅ Sim — criar com base na especificação atual do caderneiro
-   B) ❌ Não — manter ausente
-```
-
-> Se múltiplos arquivos estiverem ausentes simultaneamente, agrupar em até 4 perguntas por chamada.
+1. Ler `index.md` (seção "Configuração") — ou, se ausente, ler `CLAUDE.md` / `AGENTS.md`
+2. Identificar:
+   - **FERRAMENTA:** inferir pela presença de `CLAUDE.md` (CLAUDE_CODE), `AGENTS.md` (OPENCODE), ou ambos (AMBAS)
+   - **PLATAFORMA:** ler `exportar.json` → campo `plataforma` (NOTION / NENHUMA)
+   - **Módulos ativos:** ler `index.md` campo "Módulos ativos", ou inferir pela presença de `instrucoes/transcrever-aula.md` (transcrição)
+   - **Tipo de disciplina:** inferir do campo "Tipo" em `index.md` ou `CLAUDE.md` (Técnico / Teórico / Híbrido)
 
 ---
 
-**Passo 1b — Operações ausentes**
+**Passo 2 — Verificação completa**
 
-Comparar os arquivos presentes em `instrucoes/` com o conjunto de operações padrão que todo caderno deve ter:
+Iterar cada linha do **Mapa de Referência** abaixo. Para cada linha cuja **Condição** é atendida:
 
-| Arquivo | Condição |
-|---------|----------|
-| `instrucoes/_padroes.md` | sempre |
-| `instrucoes/processar-aula.md` | sempre |
-| `instrucoes/gerar-imagens.md` | sempre |
-| `instrucoes/exportar-conteudo.md` | sempre |
-| `instrucoes/transcrever-aula.md` | se módulo de transcrição ativo |
+1. Verificar se o arquivo **existe** no caderno
+   - Se ausente → registrar como `AUSENTE`
+2. Se existe, **ler a referência indicada** no caderneiro (`instrucoes/` do caderneiro, não do caderno)
+3. **Ler o arquivo do caderno** e comparar cada aspecto listado
+   - Se algum aspecto diverge → registrar como `DIVERGENTE` com resumo
+   - Se todos os aspectos estão alinhados → registrar como `OK`
 
-Para cada arquivo ausente, **→ Usar AskUserQuestion:**
-```
-Q: "instrucoes/[arquivo].md — ausente (adicionado ao caderneiro após criação deste caderno). Deseja criar?"
-   A) ✅ Sim — criar agora
-   B) ❌ Não — manter ausente
-```
+> **Regra:** comparar **todos** os aspectos de **todas** as linhas antes de apresentar resultados. Não perguntar nada ao usuário neste passo.
 
-**Passo 1b.1 — Hints de modelo**
+### Mapa de Referência
 
-Para cada arquivo de operação presente em `instrucoes/`, verificar se contém `<!-- modelo: NIVEL -->` na primeira linha. Verificar também se `instrucoes/_padroes.md` contém a seção "Modelos Recomendados".
-
-Se ausentes, **→ Usar AskUserQuestion:**
-```
-Q: "Hints de orquestração de modelos não encontrados neste caderno. Deseja adicionar?"
-   A) ✅ Sim — adicionar hints e seção de modelos conforme especificação atual
-   B) ❌ Não — manter sem orquestração de modelos
-```
-
-Se **Sim**: inserir `<!-- modelo: NIVEL -->` na primeira linha de cada arquivo de operação (conforme tabela em `instrucoes/modelos.md` do caderneiro) e adicionar seção "Modelos Recomendados" em `_padroes.md`.
-
----
-
-**Passo 1b.2 — Commands com verificação de modelo**
-
-Para cada command file em `.claude/commands/` e/ou `.opencode/commands/` (conforme `{{FERRAMENTA}}`), verificar se contém a instrução de verificação de modelo (buscar por "modelo ativo" ou "nível do modelo" no conteúdo do arquivo).
-
-Se ausente, **→ Usar AskUserQuestion:**
-```
-Q: "Os commands deste caderno não verificam o modelo antes de executar. Deseja atualizar?"
-   A) ✅ Sim — atualizar commands com verificação de modelo
-   B) ❌ Não — manter commands atuais
-```
-
-Se **Sim**: reescrever cada command conforme o template atualizado em `instrucoes/geracao.md` do caderneiro (Etapa 9, seção "Skills individuais"). O texto de verificação correto usa "diferente" (não "superior"), pois qualquer divergência bloqueia.
+| # | Arquivo no caderno | Condição | Referência no caderneiro | Aspectos a verificar |
+|---|-------------------|----------|--------------------------|---------------------|
+| 1 | `CLAUDE.md` | FERRAMENTA == CLAUDE_CODE ou AMBAS | `geracao.md` Etapa 8, seção "CLAUDE.md" | (a) Tabela de operações com caminhos corretos para `instrucoes/`; (b) Referência a `instrucoes/_padroes.md`; (c) Instrução on-demand presente |
+| 2 | `AGENTS.md` | FERRAMENTA == OPENCODE ou AMBAS | `geracao.md` Etapa 8, seção "AGENTS.md" | Conteúdo idêntico ao CLAUDE.md |
+| 3 | `opencode.json` | FERRAMENTA == OPENCODE ou AMBAS | `geracao.md` Etapa 8, seção "opencode.json" | (a) Estrutura JSON válida; (b) Campo `instructions` contém `_padroes.md` |
+| 4 | `index.md` | sempre | `instrucoes/templates/index.md` do caderneiro | (a) Seções obrigatórias: Configuração, Estrutura de Tópicos, Registro de Aulas; (b) Tabela de tópicos coerente com arquivos em `conteudos/` |
+| 5 | `instrucoes/_padroes.md` | sempre | `geracao.md` Etapa 8 "_padroes.md" + `templates-base.md` (template do tipo da disciplina) | (a) Seções do template base correspondentes ao tipo; (b) Módulos ativos refletidos; (c) Seção "Modelos Recomendados" presente; (d) Checklist de qualidade presente |
+| 6 | `instrucoes/processar-aula.md` | sempre | `geracao.md` Etapa 8 "processar-aula.md" | (a) `<!-- modelo: COMPLEXO -->` na 1ª linha; (b) Metadata por aula (📅 Data, ⏱️ Tempo, 📊 Dificuldade); (c) Introdução do arquivo de conteúdo (tempo total + sumário); (d) Atualização de `index.md` ao final; (e) Módulos ativos refletidos |
+| 7 | `instrucoes/gerar-imagens.md` | sempre | `geracao.md` Etapa 8 "gerar-imagens.md" | (a) `<!-- modelo: SIMPLES -->` na 1ª linha; (b) Fontes de prompts: `aulas/aula-XX/prompts/` e `conteudos/prompts/`; (c) Regras por tipo de diagrama (grafos, flowcharts, estruturas) |
+| 8 | `instrucoes/exportar-conteudo.md` | sempre | `geracao.md` Etapa 8 "exportar-conteudo.md" + seção "Referência: Exportar Conteúdo" | (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) Opções corretas para a PLATAFORMA; (c) Fluxo Notion completo se aplicável (setup, upload imagens, push via script) |
+| 9 | `instrucoes/transcrever-aula.md` | módulo transcrição ativo | `geracao.md` Etapa 8 "transcrever-aula.md" | (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) 3 etapas presentes (transcrever → verificar → corrigir); (c) Configuração de tratamento de visuais |
+| 10 | `.claude/commands/*.md` | FERRAMENTA == CLAUDE_CODE ou AMBAS | `geracao.md` Etapa 9, seção "Skills individuais" | (a) Todos os commands esperados existem (menu + um por operação ativa); (b) Conteúdo de cada command segue template (verificação de modelo usa "diferente", leitura do arquivo de operação); (c) Menu lista todas as operações ativas |
+| 11 | `.opencode/commands/*.md` | FERRAMENTA == OPENCODE ou AMBAS | `geracao.md` Etapa 9, seção "Skills individuais" | Idem linha 10, com frontmatter `description` e `/models` em vez de `/model` |
+| 12 | `instrucoes/scripts/*.py` | PLATAFORMA == NOTION | `instrucoes/scripts/` do caderneiro (comparar conteúdo) | (a) `push_notion.py` existe; (b) `upload_images_notion.py` existe; (c) Conteúdo idêntico ao caderneiro |
+| 13 | `exportar.json` | sempre | `geracao.md` Etapa 8 "exportar.json" | (a) Existe; (b) Estrutura corresponde à PLATAFORMA configurada |
 
 ---
 
-**Passo 1c — Alinhamento de conteúdo**
+**Passo 3 — Relatório de divergências**
 
-Para cada arquivo presente em `instrucoes/`, ler seu conteúdo e compará-lo com a especificação correspondente no caderneiro. Identificar divergências conceituais: funcionalidades novas, regras alteradas, seções ausentes — não diff literal de texto.
+Apresentar **todas** as divergências encontradas em uma única tabela:
 
-Para cada arquivo que divergir, **→ Usar AskUserQuestion:**
 ```
-Q: "instrucoes/[arquivo].md diverge da especificação atual. Principais diferenças: [resumo]. O que fazer?"
+🔍 Verificação concluída — N divergência(s) encontrada(s):
+
+| # | Arquivo | Status | Resumo |
+|---|---------|--------|--------|
+| 1 | instrucoes/processar-aula.md | DIVERGENTE | Falta metadata por aula e sumário |
+| 4 | index.md | OK | — |
+| 12 | instrucoes/scripts/*.py | AUSENTE | Scripts de exportação não encontrados |
+[...]
+
+✅ Arquivos OK: N
+⚠️ Divergentes: N
+❌ Ausentes: N
+```
+
+Se **nenhuma divergência** (todos OK): exibir relatório final e encerrar.
+
+---
+
+**Passo 4 — Aplicar atualizações**
+
+**Se ≤ 5 divergências**, perguntar por arquivo — → Usar AskUserQuestion:
+```
+Q: "[arquivo] — [status]: [resumo]. O que fazer?"
    A) ✅ Atualizar — reescrever preservando personalizações da disciplina
    B) 🔍 Ver detalhes — mostrar divergências antes de decidir
    C) ❌ Manter — preservar versão atual
 ```
 
-- Se **Ver detalhes**: exibir detalhes em texto e usar AskUserQuestion novamente com A) Atualizar / B) Manter
+- Se **Ver detalhes**: exibir detalhes em texto e usar AskUserQuestion novamente com A) Atualizar / C) Manter
 
-**Passo 2 — Relatório de atualização**
+**Se > 5 divergências**, → Usar AskUserQuestion:
+```
+Q: "N divergências encontradas. Como deseja prosseguir?"
+   A) ✅ Atualizar todas — reescrever preservando personalizações
+   B) 🔍 Revisar uma a uma — decidir por arquivo
+   C) ❌ Manter tudo — preservar versão atual
+```
+
+- Se **Revisar uma a uma**: seguir o fluxo de ≤ 5 para cada divergência
+
+**Ao atualizar um arquivo:** ler a referência indicada no Mapa de Referência e reescrever o arquivo do caderno conforme a especificação atual, preservando personalizações da disciplina (nome, professor, variáveis, módulos, paleta de cores, etc.).
+
+---
+
+**Passo 5 — Relatório final**
 
 ```
 ✅ Atualização concluída
 📄 Arquivos atualizados: N
 ⏭️ Arquivos mantidos: N
+❌ Arquivos ausentes não criados: N
 ```

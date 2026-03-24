@@ -57,6 +57,26 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Emoji do conteúdo: ao criar ou atualizar o título H1 de um arquivo de conteúdo, escolher
      um emoji representativo para o tema e incluir à esquerda (`# 🔍 Nome do Tópico`). Se o
      arquivo já tem emoji e um mais adequado for identificado ao longo das aulas, atualizar.
+   - **Metadata por aula:** cada seção `## Aula XX` deve ter, logo abaixo do título:
+     ```
+     📅 Data de Adição: DD/MM/AAAA
+     ⏱️ Tempo Estimado de Estudo: Xh Ymin
+     📊 Dificuldade: Básica/Intermediária/Avançada
+     ```
+     Formato de tempo obrigatório: `Xh Ymin` (ex: `1h 30min`, `45min`, `2h`). Nunca usar decimais (`1,5 horas`) nem a palavra "horas"/"minutos" por extenso.
+   - **Introdução do arquivo de conteúdo:** entre o H1 e a primeira aula, manter um bloco de introdução com tempo total e sumário:
+     ```
+     > ⏱️ **Tempo total de estudo:** Xh Ymin (N aulas)
+
+     ## Sumário
+
+     | # | Aula | Tempo | Dificuldade |
+     |---|------|-------|-------------|
+     | XX | [Título](#aula-xx-título) | Xh Ymin | Nível |
+     ```
+     - Se o arquivo é novo (primeira aula): criar a introdução com 1 linha no sumário
+     - Se já existe: somar o tempo da nova aula ao total e adicionar linha ao sumário
+     - Tempo total = soma dos tempos individuais de cada aula
    - **Atualizar `index.md`** ao final de cada processamento:
      1. Adicionar linha em "Registro de Aulas": `| aula-XX | YYYY-MM-DD | N. Nome do tópico |`
      2. Em "Estrutura de Tópicos", localizar o tópico e adicionar o número da aula em "Aulas Cobertas" (ex: `—` → `01`; `01` → `01, 02`)
