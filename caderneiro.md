@@ -34,12 +34,13 @@ nome-da-disciplina/
 | **Processar aula** | Integrar ao arquivo de tópico qualquer material em `aulas/aula-XX/` — transcrição, PDF, código, imagens ou combinação deles |
 | **Gerar imagens** | Gerar imagens a partir dos prompts nos arquivos `.md` e remover os indicadores de pendência nos conteúdos |
 | **Exportar conteúdo** | Sincronizar `conteudos/` + imagens com a plataforma de estudo (Notion) ou exportar como PDF |
+| **Revisar conteúdos** | Verificar arquivos em `conteudos/` contra os padrões atuais e re-processar os divergentes |
 
 **Onde ficam os cadernos:**
 - **Dentro do caderneiro:** `caderneiro/cadernos/nome-disciplina/` — pasta `cadernos/` está no `.gitignore`; seus cadernos ficam privados
 - **Fora do caderneiro:** qualquer caminho absoluto informado pelo usuário
 
-As operações **Transcrever aula**, **Processar aula**, **Gerar imagens** e **Exportar conteúdo** são executadas a partir dos arquivos `instrucoes/` do caderno da disciplina.
+As operações **Transcrever aula**, **Processar aula**, **Gerar imagens**, **Exportar conteúdo** e **Revisar conteúdos** são executadas a partir dos arquivos `instrucoes/` do caderno da disciplina.
 > Operações adicionais podem existir conforme os módulos ativados no caderno.
 
 ---
@@ -121,6 +122,6 @@ Cada operação tem um nível de complexidade recomendado (**SIMPLES**, **MEDIO*
 
 ---
 
-**Versão:** 2.1
-**Última Atualização:** 2026-03-23
+**Versão:** 2.2
+**Última Atualização:** 2026-03-24
 **Licença:** Uso educacional livre

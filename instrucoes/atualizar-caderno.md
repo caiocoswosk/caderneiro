@@ -58,12 +58,50 @@ Iterar cada linha do **Mapa de Referência** abaixo. Para cada linha cuja **Cond
 | 11 | `.opencode/commands/*.md` | FERRAMENTA == OPENCODE ou AMBAS | `geracao.md` Etapa 9, seção "Skills individuais" | Idem linha 10, com frontmatter `description` e `/models` em vez de `/model` |
 | 12 | `instrucoes/scripts/*.py` | PLATAFORMA == NOTION | `instrucoes/scripts/` do caderneiro (comparar conteúdo) | (a) `push_notion.py` existe; (b) `upload_images_notion.py` existe; (c) Conteúdo idêntico ao caderneiro |
 | 13 | `exportar.json` | sempre | `geracao.md` Etapa 8 "exportar.json" | (a) Existe; (b) Estrutura corresponde à PLATAFORMA configurada |
+| 14 | `instrucoes/revisar-conteudo.md` | sempre | `geracao.md` Etapa 8 "revisar-conteudo.md" | (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) 5 aspectos de verificação presentes (intro, metadata, seções, exercícios, emoji); (c) fluxo de resolução com AskUserQuestion; (d) nota sobre troca para COMPLEXO no re-processamento |
+
+---
+
+**Passo 2.5 — Detecção de arquivos obsoletos**
+
+Identificar arquivos presentes no caderno que não pertencem à estrutura esperada.
+
+**Conjunto de arquivos esperados** (baseado na configuração do Passo 1):
+
+- Raiz: `CLAUDE.md`, `AGENTS.md`, `opencode.json`, `index.md`, `exportar.json`, `.gitignore`, `README.md`
+- Se PLATAFORMA == NOTION: adicionar `.env`, `.env.example`
+- Diretórios a ignorar: `aulas/`, `conteudos/`, `.git/`, `.claude/`, `.opencode/`
+- `instrucoes/`: conjunto do Mapa de Referência (Passo 2) + `scripts/` se PLATAFORMA == NOTION
+
+**Procedimento de listagem:**
+
+1. Listar **todos** os arquivos e diretórios na raiz do caderno, **incluindo ocultos** (prefixo `.`)
+2. Listar **todos** os arquivos dentro de `instrucoes/` (exceto `scripts/`)
+3. Subtrair do resultado: arquivos esperados (acima), diretórios a ignorar (acima), e arquivos do Mapa de Referência dentro de `instrucoes/`
+4. O que restar são candidatos a "extra" — avaliar cada um abaixo
+
+**Para cada arquivo ou diretório extra encontrado:**
+
+1. Buscar referências nos arquivos de instrução do caderno: `CLAUDE.md`, `AGENTS.md`, `instrucoes/*.md`, `exportar.json`, `index.md`
+2. Classificar:
+   - **Não referenciado em nenhum arquivo** → `OBSOLETO`
+   - **Referenciado apenas em arquivo(s) marcado(s) como DIVERGENTE no Passo 2** → `POTENCIALMENTE OBSOLETO` — registrar nota: "referenciado em [arquivo], pendente de atualização"
+   - **Referenciado em arquivo OK** → em uso legítimo, ignorar
+3. Registrar apenas OBSOLETO e POTENCIALMENTE OBSOLETO para o relatório
+
+**Padrões conhecidos para contextualizar** (incluir no resumo quando identificado):
+- `config.yaml` → configuração do notion-md-sync (substituído pelos scripts Python em `instrucoes/scripts/`)
+- `.notion-sync/` → diretório de cache do notion-md-sync (gerado automaticamente, não versionável)
+- `requirements.txt` fora de `instrucoes/scripts/` → dependências pip soltas
+- `conteudos/welcome.md` → arquivo residual do notion-md-sync (gerado automaticamente na primeira sincronização)
+
+> **Regra:** não perguntar nada ao usuário neste passo.
 
 ---
 
 **Passo 3 — Relatório de divergências**
 
-Apresentar **todas** as divergências encontradas em uma única tabela:
+Apresentar **todas** as divergências encontradas em uma única tabela, seguida dos arquivos obsoletos:
 
 ```
 🔍 Verificação concluída — N divergência(s) encontrada(s):
@@ -78,9 +116,15 @@ Apresentar **todas** as divergências encontradas em uma única tabela:
 ✅ Arquivos OK: N
 ⚠️ Divergentes: N
 ❌ Ausentes: N
+
+❗ Arquivos obsoletos: N
+| Arquivo | Status | Resumo |
+|---------|--------|--------|
+| config.yaml | POTENCIALMENTE OBSOLETO | Referenciado em instrucoes/exportar-conteudo.md (DIVERGENTE); notion-md-sync substituído por scripts Python |
+| .notion-sync/ | OBSOLETO | Diretório de cache do notion-md-sync; não referenciado em nenhum arquivo de instrução |
 ```
 
-Se **nenhuma divergência** (todos OK): exibir relatório final e encerrar.
+Se **nenhuma divergência e nenhum obsoleto**: exibir relatório final e encerrar.
 
 ---
 
@@ -108,6 +152,15 @@ Q: "N divergências encontradas. Como deseja prosseguir?"
 
 **Ao atualizar um arquivo:** ler a referência indicada no Mapa de Referência e reescrever o arquivo do caderno conforme a especificação atual, preservando personalizações da disciplina (nome, professor, variáveis, módulos, paleta de cores, etc.).
 
+**Arquivos obsoletos** (após resolver as divergências dos 14 arquivos):
+
+Para cada arquivo `OBSOLETO` ou `POTENCIALMENTE OBSOLETO`, → Usar AskUserQuestion:
+```
+Q: "[arquivo] — [status]: [resumo]. O que fazer?"
+   A) 🗑️ Remover — deletar o arquivo/diretório
+   B) ❌ Manter — preservar (pode ter uso não mapeado)
+```
+
 ---
 
 **Passo 5 — Relatório final**
@@ -117,4 +170,5 @@ Q: "N divergências encontradas. Como deseja prosseguir?"
 📄 Arquivos atualizados: N
 ⏭️ Arquivos mantidos: N
 ❌ Arquivos ausentes não criados: N
+🗑️ Arquivos obsoletos removidos: N
 ```

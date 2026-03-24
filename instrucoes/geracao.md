@@ -91,6 +91,29 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    **`instrucoes/exportar-conteudo.md`** (sempre gerado):
    - Procedimento de sincronização com a plataforma de estudo e exportação como PDF
 
+   **`instrucoes/revisar-conteudo.md`** (sempre gerado):
+   - Verificação estrutural de todos os arquivos em `conteudos/` contra `instrucoes/_padroes.md`
+   - **Passo 0:** listar arquivos `.md` em `conteudos/` (excluir subdiretório `prompts/`); encerrar se vazio
+   - **Passo 1 — Verificação:** para cada arquivo, verificar os aspectos abaixo e registrar OK / DIVERGENTE:
+     - (a) Bloco de introdução: callout `⏱️ Tempo total` + tabela Sumário `| # | Aula | Tempo | Dificuldade |` após o H1
+     - (b) Metadata de aula: linhas `📅`/`⏱️`/`📊` em texto simples (não blockquote `>`); tempo no formato `Xh Ymin` (não decimal)
+     - (c) Seções obrigatórias por aula: `### 📌 Objetivos`, seção de conceitos, `### 📝 TL;DR`, glossário em `<details>`
+     - (d) Exercícios: 3 níveis (🟢🟡🔴) com soluções em `<details>` toggles
+     - (e) Emoji no H1: título começa com emoji representativo
+   - Verificar **todos** os aspectos de **todos** os arquivos antes de exibir relatório
+   - **Passo 2 — Relatório:**
+     ```
+     🔍 Revisão de conteúdos — N arquivo(s) com divergências:
+     | Arquivo | Status | Aulas divergentes | Resumo |
+     ✅ OK: N | ⚠️ Divergentes: N
+     ```
+     Se nenhuma divergência: encerrar
+   - **Passo 3 — Resolução:** avisar que re-processamento requer modelo COMPLEXO (sugerir troca antes de iniciar)
+     - Se ≤ 3 arquivos divergentes → AskUserQuestion por arquivo: A) 🔄 Re-processar / B) 🔍 Ver detalhes / C) ❌ Manter
+     - Se > 3 → AskUserQuestion global: A) 🔄 Re-processar todos / B) 🔍 Revisar um a um / C) ❌ Manter tudo
+   - **Passo 4 — Re-processamento:** ler `index.md` → "Aulas Cobertas"; verificar materiais em `aulas/aula-XX/`; re-executar `instrucoes/processar-aula.md` para cada aula em ordem; avisar se materiais ausentes
+   - **Passo 5 — Relatório final:** `🔄 Re-processados: N | ⏭️ Mantidos: N | ⚠️ Materiais ausentes: N`
+
    **`exportar.json`** (criado na raiz do caderno durante a geração):
    - Se `{{PLATAFORMA}} == NOTION`:
      ```json
@@ -130,6 +153,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - `processar-aula.md` → `<!-- modelo: COMPLEXO -->`
    - `gerar-imagens.md` → `<!-- modelo: SIMPLES -->`
    - `exportar-conteudo.md` → `<!-- modelo: MEDIO -->`
+   - `revisar-conteudo.md` → `<!-- modelo: MEDIO -->`
 
 9. **Criar skills individuais** — gerar comandos em `.claude/commands/` e `.opencode/commands/` (conforme `{{FERRAMENTA}}`):
 
@@ -144,6 +168,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
       B) ⚙️ Processar aula → execute /processar-aula
       C) 🖼️ Gerar imagens → execute /gerar-imagens
       D) 📤 Exportar conteúdo → execute /exportar-conteudo
+      E) 🔍 Revisar conteúdos → execute /revisar-conteudo
 
    Após a seleção, execute a skill correspondente.
    ```
@@ -156,6 +181,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
       A) ⚙️ Processar aula → execute /processar-aula
       B) 🖼️ Gerar imagens → execute /gerar-imagens
       C) 📤 Exportar conteúdo → execute /exportar-conteudo
+      D) 🔍 Revisar conteúdos → execute /revisar-conteudo
 
    Após a seleção, execute a skill correspondente.
    ```
@@ -185,6 +211,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - `processar-aula.md` (sempre)
    - `gerar-imagens.md` (sempre)
    - `exportar-conteudo.md` (sempre)
+   - `revisar-conteudo.md` (sempre)
 
    **Fluxos interativos de cada operação do caderno:**
 
@@ -242,6 +269,10 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
         A) 📘 Sincronizar com Notion — enviar conteúdo para o Notion
         B) 📄 Exportar como PDF — gerar PDFs via pandoc
      ```
+
+   **H) Revisar conteúdos:**
+   - Verificar arquivos em `conteudos/` e reportar divergências (ver spec de `instrucoes/revisar-conteudo.md`)
+   - Se o usuário optar por re-processar → sugerir troca para modelo COMPLEXO antes de iniciar
 
 10. **Substituir todas as variáveis** em todos os arquivos gerados
 11. **Validar com checklist** (ver abaixo)

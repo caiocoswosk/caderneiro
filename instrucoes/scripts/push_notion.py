@@ -176,12 +176,15 @@ def create_page(token, parent_page_id, title):
 def append_blocks(page_id, blocks):
     total = len(blocks)
     sent = 0
+    all_results = []
     for start in range(0, total, CHUNK_SIZE):
         chunk = blocks[start:start + CHUNK_SIZE]
-        api("PATCH", f"blocks/{page_id}/children", {"children": chunk})
+        resp = api("PATCH", f"blocks/{page_id}/children", {"children": chunk})
+        all_results.extend(resp.get("results", []))
         sent += len(chunk)
         print(f"  Enviado: {sent}/{total} blocos")
         time.sleep(0.3)
+    return all_results
 
 
 # ---------------------------------------------------------------------------
@@ -357,6 +360,44 @@ def toggle_block(summary, children):
     return {"object": "block", "type": "toggle", "toggle": t}
 
 
+_ANCHOR_LINK_RE = re.compile(r"\[([^\]]+)\]\(#([^)]+)\)")
+
+
+def _strip_anchor_links(text):
+    """Remove links de âncora (#...) mantendo apenas o texto visível.
+
+    Links de âncora não funcionam diretamente no Notion — são resolvidos
+    em pós-processamento via _resolve_toc_links(). Este strip serve de fallback.
+    Ex: '[Título](#aula-01-titulo)' → 'Título'
+    """
+    return _ANCHOR_LINK_RE.sub(r"\1", text)
+
+
+def _extract_anchor_links(text):
+    """Extrai links de âncora de uma célula de tabela.
+
+    Retorna lista de (display_text, anchor_slug).
+    Ex: '[Título](#aula-01-titulo)' → [('Título', 'aula-01-titulo')]
+    """
+    return _ANCHOR_LINK_RE.findall(text)
+
+
+def _slugify(text):
+    """Converte texto de heading para slug estilo markdown (GFM).
+
+    Ex: 'Aula 01: Motivação e Conceitos Iniciais'
+      → 'aula-01-motivação-e-conceitos-iniciais'
+    """
+    text = text.lower()
+    # Remove tudo que não é letra (unicode), dígito, espaço ou hífen
+    text = re.sub(r"[^\w\s-]", "", text, flags=re.UNICODE)
+    # Espaços e underscores → hífens
+    text = re.sub(r"[\s_]+", "-", text.strip())
+    # Remove hífens duplicados e nas bordas
+    text = re.sub(r"-{2,}", "-", text).strip("-")
+    return text
+
+
 def table_block(rows):
     """rows: lista de listas de strings. Primeira linha = cabeçalho."""
     if not rows:
@@ -369,7 +410,7 @@ def table_block(rows):
             "object": "block",
             "type": "table_row",
             "table_row": {
-                "cells": [[{"type": "text", "text": {"content": c}}] for c in padded]
+                "cells": [rich(_strip_anchor_links(c)) for c in padded]
             },
         }
 
@@ -427,6 +468,7 @@ def _indent_level(line):
 
 def md_to_blocks(lines, img_map):
     blocks = []
+    meta = {"heading_slugs": {}, "table_anchors": []}
     i = 0
     n = len(lines)
 
@@ -494,7 +536,7 @@ def md_to_blocks(lines, img_map):
                 inner.append(lines[i])
                 i += 1
             i += 1
-            children = md_to_blocks(inner, img_map)
+            children, _ = md_to_blocks(inner, img_map)
             blocks.append(toggle_block(summary, children))
             continue
 
@@ -512,7 +554,9 @@ def md_to_blocks(lines, img_map):
         # Headings
         m = re.match(r"^(#{1,4})\s+(.*)", stripped)
         if m:
-            blocks.append(heading_block(len(m.group(1)), m.group(2)))
+            heading_text = m.group(2)
+            meta["heading_slugs"][len(blocks)] = _slugify(heading_text)
+            blocks.append(heading_block(len(m.group(1)), heading_text))
             i += 1
             continue
 
@@ -557,12 +601,23 @@ def md_to_blocks(lines, img_map):
         # Tabela markdown
         if stripped.startswith("|"):
             rows = []
+            anchor_info = []
             while i < n and lines[i].strip().startswith("|"):
                 if not _is_separator_row(lines[i]):
-                    rows.append(_parse_table_row(lines[i]))
+                    row_cells = _parse_table_row(lines[i])
+                    row_idx = len(rows)
+                    for col_idx, cell in enumerate(row_cells):
+                        for display, slug in _extract_anchor_links(cell):
+                            anchor_info.append((row_idx, col_idx, display, slug))
+                    rows.append(row_cells)
                 i += 1
             t = table_block(rows)
             if t:
+                if anchor_info:
+                    meta["table_anchors"].append({
+                        "block_index": len(blocks),
+                        "anchors": anchor_info,
+                    })
                 blocks.append(t)
             continue
 
@@ -591,7 +646,7 @@ def md_to_blocks(lines, img_map):
                     i += 1
                 else:
                     break
-            children = md_to_blocks(child_lines, img_map) if child_lines else None
+            children = md_to_blocks(child_lines, img_map)[0] if child_lines else None
             blocks.append(bullet_block(text, children))
             continue
 
@@ -612,7 +667,7 @@ def md_to_blocks(lines, img_map):
                     i += 1
                 else:
                     break
-            children = md_to_blocks(child_lines, img_map) if child_lines else None
+            children = md_to_blocks(child_lines, img_map)[0] if child_lines else None
             blocks.append(numbered_block(text, children))
             continue
 
@@ -620,7 +675,7 @@ def md_to_blocks(lines, img_map):
         blocks.append(paragraph_block(stripped))
         i += 1
 
-    return blocks
+    return blocks, meta
 
 
 # ---------------------------------------------------------------------------
@@ -634,6 +689,97 @@ def load_image_map():
         print(f"Mapa de imagens carregado: {len(m)} entradas")
         return m
     return {}
+
+
+# ---------------------------------------------------------------------------
+# TOC link resolution (pós-processamento)
+# ---------------------------------------------------------------------------
+
+def _resolve_toc_links(page_id, results, metadata):
+    """Resolve links de âncora do sumário para links internos do Notion.
+
+    Após enviar todos os blocos, usa os IDs retornados pela API para
+    atualizar as células da tabela do sumário com links clicáveis que
+    navegam até o heading correspondente na página.
+    """
+    if not metadata.get("table_anchors"):
+        return
+
+    # 1. Mapear slug → block_id a partir dos headings criados
+    slug_to_block_id = {}
+    for block_idx, slug in metadata["heading_slugs"].items():
+        if block_idx < len(results):
+            slug_to_block_id[slug] = results[block_idx]["id"]
+
+    if not slug_to_block_id:
+        print("  [aviso] Nenhum heading encontrado para resolver links do sumário")
+        return
+
+    page_id_clean = page_id.replace("-", "")
+
+    # 2. Para cada tabela com âncoras, buscar rows e atualizar células
+    for table_info in metadata["table_anchors"]:
+        block_idx = table_info["block_index"]
+        if block_idx >= len(results):
+            continue
+
+        table_block_id = results[block_idx]["id"]
+
+        # GET children da tabela (rows) — IDs não vêm no response do append
+        try:
+            children_resp = api("GET", f"blocks/{table_block_id}/children?page_size=100")
+            time.sleep(0.3)
+        except Exception as e:
+            print(f"  [aviso] Falha ao buscar rows da tabela: {e}")
+            continue
+
+        row_blocks = children_resp.get("results", [])
+
+        # Agrupar âncoras por row_idx
+        anchors_by_row = {}
+        for row_idx, col_idx, display, slug in table_info["anchors"]:
+            anchors_by_row.setdefault(row_idx, []).append((col_idx, display, slug))
+
+        # 3. PATCH cada row que tem âncora
+        resolved = 0
+        for row_idx, anchor_list in anchors_by_row.items():
+            if row_idx >= len(row_blocks):
+                continue
+
+            row_block = row_blocks[row_idx]
+            row_id = row_block["id"]
+            cells = row_block["table_row"]["cells"]
+
+            modified = False
+            for col_idx, display, slug in anchor_list:
+                target_id = slug_to_block_id.get(slug)
+                if target_id is None:
+                    continue  # fallback: célula fica com texto puro
+
+                block_id_clean = target_id.replace("-", "")
+                notion_url = f"https://www.notion.so/{page_id_clean}#{block_id_clean}"
+
+                cells[col_idx] = [{
+                    "type": "text",
+                    "text": {
+                        "content": display,
+                        "link": {"url": notion_url}
+                    }
+                }]
+                modified = True
+
+            if modified:
+                try:
+                    api("PATCH", f"blocks/{row_id}", {
+                        "table_row": {"cells": cells}
+                    })
+                    resolved += 1
+                    time.sleep(0.3)
+                except Exception as e:
+                    print(f"  [aviso] Falha ao atualizar row {row_idx}: {e}")
+
+        if resolved:
+            print(f"  Links do sumário: {resolved} resolvidos")
 
 
 # ---------------------------------------------------------------------------
@@ -699,9 +845,12 @@ def main():
             if first_h1 is not None:
                 lines = lines[:first_h1] + lines[first_h1 + 1:]
 
-            blocks = md_to_blocks(lines, img_map)
+            blocks, block_meta = md_to_blocks(lines, img_map)
             print(f"  {len(blocks)} blocos")
-            append_blocks(notion_id, blocks)
+            results = append_blocks(notion_id, blocks)
+
+            if block_meta.get("table_anchors"):
+                _resolve_toc_links(notion_id, results, block_meta)
 
         except Exception as e:
             errors.append((os.path.basename(filepath), str(e)))

@@ -122,6 +122,7 @@ nome-da-disciplina/
 | `/processar-aula` | Processar aula | Transforma qualquer material da pasta da aula em conteúdo estruturado; identifica o tópico automaticamente |
 | `/gerar-imagens` | Gerar imagens | Produz imagens de diagramas a partir dos prompts pendentes |
 | `/exportar-conteudo` | Exportar conteúdo | Sincroniza `conteudos/` + imagens com o Notion ou exporta como PDF |
+| `/revisar-conteudo` | Revisar conteúdos | Verifica arquivos em `conteudos/` contra os padrões atuais e oferece re-processamento dos divergentes |
 
 ---
 
@@ -132,7 +133,7 @@ O caderneiro recomenda automaticamente o modelo mais adequado para cada operaç�
 | Nível | Operações | Exemplos (Anthropic) |
 |-------|-----------|---------------------|
 | **SIMPLES** | criar-caderno, modificar-caderno, gerar-imagens | haiku |
-| **MEDIO** | questionario, atualizar-caderno, transcrever-aula, exportar-conteudo | sonnet |
+| **MEDIO** | questionario, atualizar-caderno, transcrever-aula, exportar-conteudo, revisar-conteudo | sonnet |
 | **COMPLEXO** | geracao, processar-aula | opus |
 
 Ao iniciar uma operação, o agente identifica o modelo ativo e compara com o nível recomendado. Se diferente, sugere troca e **para — aguarda a decisão do usuário** antes de prosseguir. Detalhes em `instrucoes/modelos.md`.
