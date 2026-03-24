@@ -120,9 +120,7 @@ Q1: "Tipo de curso?"
 
 Q2: "Plataforma de visualização?"
     A) 📘 Notion — interface visual rica, toggles, callouts
-    B) 📝 Obsidian — markdown local, wikilinks, graph view
-    C) 🐙 GitHub — GitHub-flavored markdown, Pages
-    D) 📄 LaTeX/PDF — documento acadêmico formal
+    B) ⬜ Nenhuma — manter apenas arquivos locais
 
 Q3: "Ferramenta de IA para operar o caderno?"
     A) Claude Code — gera CLAUDE.md
@@ -131,7 +129,7 @@ Q3: "Ferramenta de IA para operar o caderno?"
 ```
 
 Armazenar em: `{{TIPO_CURSO}}`, `{{PLATAFORMA}}`, `{{FERRAMENTA}}`
-Valores: `TECNICA|TEORICA|HIBRIDA`, `NOTION|OBSIDIAN|GITHUB|LATEX`, `CLAUDE_CODE|OPENCODE|AMBAS`
+Valores: `TECNICA|TEORICA|HIBRIDA`, `NOTION|NENHUMA`, `CLAUDE_CODE|OPENCODE|AMBAS`
 
 > ℹ️ Refinamentos como linguagens usadas e nível de matemática são inferidos progressivamente conforme as aulas são processadas.
 
@@ -141,9 +139,7 @@ Após a escolha, definir automaticamente sem perguntar:
 
 ```
 NOTION:   Callout: > 💡 **Dica:** Texto  |  Diagramas: Mermaid ✅ ASCII ✅
-OBSIDIAN: Callout: > [!note] Título      |  Diagramas: Mermaid ✅ ASCII ✅
-GITHUB:   Callout: > **Note**            |  Diagramas: Mermaid ✅ ASCII ✅
-LATEX:    Callout: \begin{tcolorbox}...  |  Diagramas: TikZ ✅ ASCII ✅ Mermaid ❌
+NENHUMA:  Callout: > **Nota:**           |  Diagramas: Mermaid ✅ ASCII ✅
 
 Armazenar em: {{FORMATO_CALLOUT}} e {{SUPORTE_DIAGRAMAS}}
 ```

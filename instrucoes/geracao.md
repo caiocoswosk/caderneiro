@@ -8,7 +8,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
 1. **Coletar todas as variáveis** — consultar também `instrucoes/modelos.md` para os níveis de modelo por operação
 2. **Selecionar template base** (Técnico/Teórico/Híbrido) — consultar `instrucoes/templates-base.md`
 3. **Aplicar módulos opcionais** (código, diagramas, exercícios, transcrição, etc.) — consultar `instrucoes/modulos.md`
-4. **Aplicar adaptador de plataforma** (Notion/Obsidian/GitHub/LaTeX) — consultar `instrucoes/adaptadores-plataforma.md`
+4. **Aplicar adaptador de plataforma** (Notion/Obsidian/GitHub/Nenhuma) — consultar `instrucoes/adaptadores-plataforma.md`
 5. **Personalizar estilos** (tom, emojis, detalhamento)
 6. **Adaptar ao público-alvo**
 7. **Definir estratégia de arquivos de saída** (todos ficam em `conteudos/`):
@@ -57,6 +57,10 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Emoji do conteúdo: ao criar ou atualizar o título H1 de um arquivo de conteúdo, escolher
      um emoji representativo para o tema e incluir à esquerda (`# 🔍 Nome do Tópico`). Se o
      arquivo já tem emoji e um mais adequado for identificado ao longo das aulas, atualizar.
+   - **Atualizar `index.md`** ao final de cada processamento:
+     1. Adicionar linha em "Registro de Aulas": `| aula-XX | YYYY-MM-DD | N. Nome do tópico |`
+     2. Em "Estrutura de Tópicos", localizar o tópico e adicionar o número da aula em "Aulas Cobertas" (ex: `—` → `01`; `01` → `01, 02`)
+     3. Se o tópico não existia (caderno sem ementa): inserir nova linha com emoji + nome + arquivo
 
    **`instrucoes/gerar-imagens.md`** (sempre gerado):
    - Regras para grafos (prompt destacado), flowcharts (Mermaid) e estruturas de dados
@@ -65,8 +69,40 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Fontes de prompts: transcrição salva em `aulas/aula-XX/prompts/`; processamento salva em `conteudos/prompts/` — gerar-imagens lê de ambas; ambas ignoradas na exportação
 
    **`instrucoes/exportar-conteudo.md`** (sempre gerado):
-   - Verificação de `exportar.json` e setup lazy por plataforma
-   - Procedimento de exportação para Notion, Obsidian, PDF e GitHub
+   - Procedimento de sincronização com a plataforma de estudo e exportação como PDF
+
+   **`exportar.json`** (criado na raiz do caderno durante a geração):
+   - Se `{{PLATAFORMA}} == NOTION`:
+     ```json
+     {
+       "plataforma": "NOTION",
+       "notion": {
+         "page_id": "",
+         "token_env": "NOTION_TOKEN"
+       }
+     }
+     ```
+   - Se `{{PLATAFORMA}} == NENHUMA`:
+     ```json
+     {
+       "plataforma": "NENHUMA"
+     }
+     ```
+   `page_id` fica vazio e é preenchido no primeiro uso.
+   > ⚠️ Adicionar `exportar.json` e `.env` ao `.gitignore` do caderno — podem conter tokens sensíveis.
+
+   **`index.md` (raiz do caderno — copiar de `instrucoes/templates/index.md` e substituir variáveis):**
+   - `{{CODIGO_DISCIPLINA}}`: código da disciplina se disponível; omitir a linha se não informado
+   - `{{MODULOS_ATIVOS}}`: lista dos módulos habilitados (ex: código, exercícios, transcrição, diagramas)
+   - `{{DATA_CRIACAO}}`: data atual no formato YYYY-MM-DD
+   - `{{LINHAS_TOPICOS}}`:
+     - Se `{{EMENTA}}` fornecida: uma linha por tópico — `| N | EMOJI Nome do Tópico | \`conteudos/N-nome.md\` | — |`
+     - Se não fornecida: `| — | — | — | — |` (linha única indicando ausência de ementa)
+
+   **`instrucoes/scripts/`** (copiar do caderneiro — não gerar):
+   Copiar os dois scripts do caderneiro raiz (`instrucoes/scripts/`) para o caderno:
+   - `push_notion.py` — exporta `conteudos/` para o Notion
+   - `upload_images_notion.py` — faz upload de imagens para a Notion File Upload API
 
    **Hints de modelo em cada arquivo de operação gerado:**
    Inserir `<!-- modelo: NIVEL -->` na **primeira linha** de cada arquivo de instrução, conforme a tabela em `instrucoes/modelos.md`:
@@ -161,19 +197,16 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
      ```
 
    **G) Exportar conteúdo:**
-   - Se `exportar.json` existe → usar AskUserQuestion com o texto exato abaixo (não reformule):
+   - Se `{{PLATAFORMA}} == NENHUMA` → usar AskUserQuestion com o texto exato abaixo (não reformule):
      ```
-     Q: "Confirmar exportação para [PLATAFORMA]?"
-        A) ✅ Sim — exportar agora
-        B) 🔧 Mudar plataforma — reconfigurar exportar.json
+     Q: "Como exportar?"
+        A) 📄 Exportar como PDF — gerar PDFs via pandoc
      ```
-   - Se `exportar.json` não existe → usar AskUserQuestion com o texto exato abaixo (não reformule):
+   - Se `{{PLATAFORMA}} == NOTION` → usar AskUserQuestion com o texto exato abaixo (não reformule):
      ```
-     Q: "Para qual plataforma exportar?"
-        A) 📘 Notion
-        B) 📝 Obsidian
-        C) 📄 PDF
-        D) 🐙 GitHub / GitHub Pages
+     Q: "Como exportar?"
+        A) 📘 Sincronizar com Notion — enviar conteúdo para o Notion
+        B) 📄 Exportar como PDF — gerar PDFs via pandoc
      ```
 
 10. **Substituir todas as variáveis** em todos os arquivos gerados
@@ -184,28 +217,14 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
 
 ## Referência: Exportar Conteúdo
 
-Sincroniza os arquivos de `conteudos/` + imagens com a plataforma de estudo escolhida. A configuração é feita uma única vez por caderno e salva em `exportar.json`.
+Exporta o conteúdo de `conteudos/` para o Notion ou gera PDFs via pandoc.
 
-**Passo 1 — Verificar configuração**
-
-Checar se `exportar.json` existe na raiz do caderno. Se não existir, → usar AskUserQuestion com o texto exato abaixo (não reformule):
-
-```
-Q: "Para qual plataforma exportar?"
-   A) 📘 Notion
-   B) 📝 Obsidian
-   C) 📄 PDF
-   D) 🐙 GitHub / GitHub Pages
-```
-
-Exibir o tutorial de setup da plataforma escolhida (ver abaixo) e, ao final, salvar `exportar.json`.
-
-**`exportar.json` (salvo na raiz do caderno, nunca versionado):**
+**`exportar.json` (criado na raiz do caderno durante a geração, nunca versionado):**
 ```json
 {
   "plataforma": "NOTION",
   "notion": {
-    "page_id": "ID_DA_PAGINA_PAI",
+    "page_id": "",
     "token_env": "NOTION_TOKEN"
   }
 }
@@ -214,127 +233,102 @@ Exibir o tutorial de setup da plataforma escolhida (ver abaixo) e, ao final, sal
 
 ---
 
-**Passo 2 — Executar exportação**
+### Opção A — Sincronizar com Notion
 
-#### A) Notion
+> **Dependências:** `instrucoes/scripts/push_notion.py` e `instrucoes/scripts/upload_images_notion.py` (copiados do caderneiro durante a geração).
 
-> **Dependências:** `notion-md-sync` (go-notion-md-sync) + `instrucoes/scripts/push_notion.py` (gerado no setup).
+**Passo 1 — Verificar configuração**
 
-**A.1 — Primeiro uso: setup do notion-md-sync**
+Ler `exportar.json`. Se `notion.page_id` estiver vazio, executar o **fluxo de primeiro uso** abaixo. Caso contrário, ir direto para o Passo 2.
 
-Antes de rodar qualquer comando, perguntar ao usuário:
+**Fluxo de primeiro uso:**
 
+→ usar AskUserQuestion com o texto exato abaixo (não reformule):
 ```
-"Preciso de duas informações para configurar a exportação para o Notion:
-
-1. Seu Internal Integration Token (obtido em https://www.notion.so/profile/integrations)
-   Exemplo: ntn_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-2. O ID da página pai no Notion onde o conteúdo será publicado
-   (são os 32 caracteres após o último "/" na URL da página)
-   Exemplo: 3258a0cf609d80479960f7e17498cdd7"
+Q: "Para configurar o Notion, você precisa de um Integration Token e de um Page ID. Como prefere prosseguir?"
+   A) 📖 Ver tutorial de setup
+   B) 🔑 Já tenho os dados — configurar agora
 ```
 
-Com os dados em mãos, pedir para o usuário rodar:
-
+Se A (tutorial), exibir:
 ```
-! cd <caminho-do-caderno> && notion-md-sync init
-```
+TUTORIAL DE SETUP DO NOTION:
 
-⚠️ **Atenção ao token durante o init:** O Notion gera tokens com prefixo `ntn_`, mas o `notion-md-sync` só aceita `secret_`. Durante o `init`, orientar o usuário a digitar o token com o prefixo trocado:
-
-- Token original: `ntn_XXXXXXXXXX...`
-- Token a digitar no init: `secret_XXXXXXXXXX...` ← só troca o prefixo, o resto é igual
-
-Quando o init perguntar **"Markdown directory"**, responder: `conteudos`
-
-Após o init, **corrigir o `.env`** trocando `secret_` de volta para `ntn_`:
-```
-NOTION_MD_SYNC_NOTION_TOKEN=ntn_XXXXXXXXXX...
-```
-
-**A.2 — Upload das imagens**
-
-Para cada arquivo em `conteudos/imagens/`, fazer upload via Notion File Upload API (2 passos):
-
-```
-# Passo 1 — criar objeto de upload (headers: Authorization + Notion-Version + Content-Type: application/json):
-POST https://api.notion.com/v1/file_uploads
-Body: {"filename": "nome.png", "content_type": "image/png"}
-Resposta: {"id": "...", "upload_url": "https://api.notion.com/v1/file_uploads/{id}/send"}
-
-# Passo 2 — enviar o arquivo para a upload_url retornada
-# Headers: Authorization + Notion-Version (sem Content-Type — requests seta multipart automaticamente)
-POST <upload_url>
-Form-data: file=@caminho/imagem.png;type=image/png
-```
-
-> ⚠️ **Atenção no Passo 2:** a `upload_url` é um endpoint da própria Notion (`/v1/file_uploads/{id}/send`), não S3. Exige `Authorization` e `Notion-Version`, mas **não** `Content-Type` (conflita com o multipart gerado automaticamente).
-
-Salvar o mapeamento `nome_arquivo → file_upload_id` em `/tmp/img_notion_map.json`.
-
-**A.3 — Push do conteúdo**
-
-⚠️ **Não usar `notion-md-sync push` diretamente** — ele tem um bug onde envia blocos de tabela sem os filhos, causando erro 400 da API Notion. Usar o script customizado em `instrucoes/scripts/push_notion.py`.
-
-```bash
-source .env && export NOTION_MD_SYNC_NOTION_TOKEN
-python3 instrucoes/scripts/push_notion.py
-```
-
-O script opera sobre **todos** os arquivos em `conteudos/` de uma vez, em ordem alfabética (= ordem numérica pelo prefixo dos arquivos), ignorando `welcome.md` (arquivo residual do `notion-md-sync`):
-
-1. **Arquiva** todas as páginas existentes (`notion_id` no frontmatter) via `PATCH /pages/{id} {"archived": true}`
-2. **Recria** cada página em ordem, garantindo a sequência correta no Notion
-3. **Remove o `# H1`** do corpo antes de converter — ele já é o título da página, não deve aparecer duplicado
-4. **Extrai o emoji do título** (se houver) — remove do texto do título e define como ícone da página via `"icon": {"type": "emoji", "emoji": "📊"}` na criação. O título enviado ao Notion fica limpo, sem emoji.
-5. Envia os blocos em chunks de 100 e salva o novo `notion_id` no frontmatter de cada arquivo
-
-> O emoji no início do título (ex: `# 📊 Grafos`) é automaticamente extraído: o título da página no Notion recebe apenas o texto, e o emoji vira o ícone da página.
-
-> O `notion_id` muda a cada exportação (página nova a cada vez). Isso é esperado e transparente.
-
-> **Raiz do bug:** A API Notion exige que blocos aninhados coloquem seus filhos **dentro do objeto do tipo**, não na raiz. Isso afeta `table` (linhas) e `toggle` (conteúdo): use `table.children` e `toggle.children`. O `notion-md-sync` coloca no nível errado em ambos os casos.
-
-**A.4 — Atualizações subsequentes**
-
-O mesmo comando re-exporta tudo do zero (arquiva as antigas e recria em ordem):
-
-```bash
-source .env && export NOTION_MD_SYNC_NOTION_TOKEN
-python3 instrucoes/scripts/push_notion.py
-```
-
-**Tutorial de setup Notion (primeira vez):**
-```
 1. Acesse https://www.notion.so/profile/integrations
 2. Clique em "New integration" → nomeie (ex: "caderneiro")
 3. Copie o "Internal Integration Token" (começa com ntn_)
 4. Abra a página do Notion onde o conteúdo será publicado
 5. Clique em "..." → "Connect to" → selecione sua integration
 6. Copie o ID da página da URL (32 caracteres após o último "/")
-7. Instale go-notion-md-sync: https://github.com/byvfx/go-notion-md-sync
-8. Informe token e page_id ao agente ANTES de rodar qualquer comando
 ```
 
----
+Após o tutorial → usar AskUserQuestion com o texto exato abaixo (não reformule):
+```
+Q: "Pronto para informar as credenciais?"
+   A) ✅ Sim — informar agora
+```
 
-#### B) Obsidian
+Coletar credenciais (para A em qualquer caminho) — usar AskUserQuestion com o texto exato abaixo (não reformule):
+```
+Q: "Informe o Integration Token do Notion:"
+   (começa com ntn_ — ex: ntn_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)
+```
+
+→ usar AskUserQuestion com o texto exato abaixo (não reformule):
+```
+Q: "Informe o Page ID da página pai no Notion:"
+   (32 caracteres após o último "/" na URL da página — ex: 3258a0cf609d80479960f7e17498cdd7)
+```
+
+Criar `.env` na raiz do caderno com o conteúdo:
+```
+NOTION_MD_SYNC_NOTION_TOKEN=ntn_XXXXXXXXXX
+NOTION_MD_SYNC_NOTION_PARENT_PAGE_ID=page_id_aqui
+```
+
+Atualizar `exportar.json` com o page_id em `notion.page_id`.
+
+**Passo 2 — Upload de imagens**
+
+Verificar se `conteudos/imagens/` existe e contém arquivos.
+
+Se sim → usar AskUserQuestion com o texto exato abaixo (não reformule):
+```
+Q: "Imagens detectadas em conteudos/imagens/. Como prosseguir?"
+   A) ⬆️ Fazer upload das imagens (recomendado para imagens novas)
+   B) ⏭️ Pular — exportar sem atualizar imagens
+```
+
+Se A, executar:
+```bash
+source .env && export NOTION_MD_SYNC_NOTION_TOKEN
+python3 instrucoes/scripts/upload_images_notion.py
+```
+
+O script suporta `.png`, `.jpg`, `.jpeg`, `.webp` e `.gif`. Pula imagens já presentes no mapa e salva o resultado em `/tmp/img_notion_map.json` (`nome_arquivo → file_upload_id`).
+
+**Passo 3 — Push do conteúdo**
 
 ```bash
-cp -r conteudos/* {{CAMINHO_VAULT}}/
+source .env && export NOTION_MD_SYNC_NOTION_TOKEN
+python3 instrucoes/scripts/push_notion.py
 ```
 
-**Tutorial de setup Obsidian:**
-```
-1. Abra o Obsidian e vá em Configurações → Sobre
-2. O caminho da vault aparece em "Vault path"
-3. Informe este caminho ao agente para salvar em exportar.json
-```
+O script opera sobre **todos** os arquivos em `conteudos/` de uma vez, em ordem alfabética:
+
+1. **Arquiva** todas as páginas existentes (`notion_id` no frontmatter) via `PATCH /pages/{id} {"archived": true}`
+2. **Recria** cada página em ordem, garantindo a sequência correta no Notion
+3. **Remove o `# H1`** do corpo — ele já é o título da página, não deve aparecer duplicado
+4. **Extrai o emoji do título** — remove do texto e define como ícone da página. Título no Notion fica limpo.
+5. Envia os blocos em chunks de 100 e salva o novo `notion_id` no frontmatter de cada arquivo
+
+> O `notion_id` muda a cada exportação (página nova a cada vez). Isso é esperado e transparente.
 
 ---
 
-#### C) PDF (pandoc)
+### Opção B — Exportar como PDF
+
+Disponível para qualquer plataforma (incluindo Nenhuma).
 
 ```bash
 for f in conteudos/*.md; do
@@ -354,24 +348,6 @@ brew install pandoc
 
 # Verificar
 pandoc --version
-```
-
----
-
-#### D) GitHub / GitHub Pages
-
-```bash
-git add conteudos/
-git commit -m "conteúdo: sincronizar [$(date +%Y-%m-%d)]"
-git push
-```
-
-**Tutorial de setup GitHub:**
-```
-1. Crie um repositório privado no GitHub para o caderno
-2. Na pasta do caderno: git init && git remote add origin URL_DO_REPO
-3. Configure autenticação (SSH key ou token)
-4. Informe a URL do remote ao agente para salvar em exportar.json
 ```
 
 ---

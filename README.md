@@ -52,7 +52,7 @@ O Caderneiro é um conjunto de instruções para agentes de IA (Claude Code ou O
 - **Como transcrever uma aula** — converte fotos do quadro (`capturas/`) em `transcricao.md` com verificação de inconsistências e correção automática
 - **Como processar uma aula** — usa a transcrição, PDFs, código ou qualquer material dentro da pasta da aula para estruturar o conteúdo no arquivo de tópico correspondente; identifica automaticamente o tópico pelo conteúdo
 - **Como gerar imagens** — produz diagramas a partir de prompts gerados durante o processamento
-- **Como exportar o conteúdo** — sincroniza os arquivos gerados com a plataforma de estudo escolhida: Notion (com upload automático de imagens via API e emoji como ícone da página), Obsidian, PDF ou GitHub
+- **Como exportar o conteúdo** — sincroniza os arquivos gerados com o Notion (com upload automático de imagens via API e emoji como ícone de página) ou exporta como PDF
 
 Toda interação acontece via **menus interativos** ou **skills diretas**: o agente apresenta opções usando o recurso nativo de menus do Claude Code / OpenCode, e cada operação tem sua própria skill invocável diretamente.
 
@@ -61,62 +61,25 @@ Toda interação acontece via **menus interativos** ou **skills diretas**: o age
 ## Estrutura
 
 ```
-caderneiro/
-├── README.md
-├── CLAUDE.md                         ← ponto de entrada para Claude Code
-├── AGENTS.md                         ← ponto de entrada para OpenCode
-├── caderneiro.md                     ← visão geral + tabela de dispatch
-├── instrucoes/                       ← procedimentos por operação (carregados sob demanda)
-│   ├── criar-caderno.md
-│   ├── atualizar-caderno.md
-│   ├── modificar-caderno.md
-│   ├── questionario.md
-│   ├── geracao.md
-│   ├── templates-base.md
-│   ├── modulos.md
-│   ├── adaptadores-plataforma.md
-│   └── modelos.md                    ← orquestração de modelos por operação
-├── .claude/commands/                 ← skills Claude Code
-│   ├── menu.md                       ← /menu
-│   ├── criar-caderno.md              ← /criar-caderno
-│   ├── atualizar-caderno.md          ← /atualizar-caderno
-│   └── modificar-caderno.md         ← /modificar-caderno
-├── .opencode/commands/               ← skills OpenCode
-│   ├── menu.md                       ← /menu
-│   ├── criar-caderno.md              ← /criar-caderno
-│   ├── atualizar-caderno.md          ← /atualizar-caderno
-│   └── modificar-caderno.md         ← /modificar-caderno
-└── cadernos/                         ← cadernos criados aqui ficam no .gitignore
+caderneiro/           ← clone este repositório e abra aqui
+└── cadernos/         ← seus cadernos ficam aqui (privados, .gitignore)
 ```
 
 Cada **caderno gerado** tem a seguinte estrutura:
 
 ```
 nome-da-disciplina/
-├── CLAUDE.md                         ← contexto lean para Claude Code
-├── AGENTS.md                         ← contexto lean para OpenCode (se configurado)
-├── opencode.json                     ← config multi-arquivo OpenCode (se configurado)
-├── .claude/commands/                 ← skills Claude Code
-│   ├── menu.md                       ← /menu
-│   ├── transcrever-aula.md           ← /transcrever-aula
-│   ├── processar-aula.md             ← /processar-aula
-│   ├── gerar-imagens.md              ← /gerar-imagens
-│   └── exportar-conteudo.md          ← /exportar-conteudo
-├── .opencode/commands/               ← skills OpenCode (se configurado)
-│   └── [mesmas skills com frontmatter description:]
-├── instrucoes/
-│   ├── _padroes.md                   ← padrões compartilhados (formatação, exercícios...)
-│   ├── transcrever-aula.md
-│   ├── processar-aula.md
-│   ├── gerar-imagens.md
-│   ├── exportar-conteudo.md
-│   └── scripts/
-│       └── push_notion.py            ← script customizado de export para o Notion
-├── conteudos/
-│   └── 🔗 1-topico.md                ← conteúdo gerado com emoji, um arquivo por tópico
-└── aulas/
-    └── aula-XX/                      ← materiais brutos originais
+├── conteudos/        ← conteúdo estruturado, um arquivo por tópico
+│   └── 1-introducao-grafos.md
+├── aulas/            ← materiais brutos originais
+│   └── aula-01/
+│       ├── capturas/
+│       ├── slides.pdf
+│       └── codigo.c
+└── instrucoes/       ← procedimentos operados pelo agente (não editar)
 ```
+
+> Detalhes completos da estrutura interna em `caderneiro.md`.
 
 ---
 
@@ -158,7 +121,7 @@ nome-da-disciplina/
 | `/transcrever-aula` | Transcrever aula | Converte fotos do quadro em transcrição revisada |
 | `/processar-aula` | Processar aula | Transforma qualquer material da pasta da aula em conteúdo estruturado; identifica o tópico automaticamente |
 | `/gerar-imagens` | Gerar imagens | Produz imagens de diagramas a partir dos prompts pendentes |
-| `/exportar-conteudo` | Exportar conteúdo | Sincroniza `conteudos/` + imagens com Notion, Obsidian, PDF ou GitHub |
+| `/exportar-conteudo` | Exportar conteúdo | Sincroniza `conteudos/` + imagens com o Notion ou exporta como PDF |
 
 ---
 

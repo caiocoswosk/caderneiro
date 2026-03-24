@@ -35,85 +35,32 @@ Inline: $$E = mc^2$$
 
 ---
 
-### 📝 Adaptador OBSIDIAN
+### ⬜ Sem Plataforma (NENHUMA)
 
-**Quando usar:** `{{PLATAFORMA}} == "OBSIDIAN"`
+**Quando usar:** `{{PLATAFORMA}} == "NENHUMA"`
 
 #### Callouts:
 
 ```markdown
-> [!note] Nota
-> Conteúdo
+> **Nota:** Conteúdo
 
-> [!tip] Dica
-> Conteúdo
+> **Dica:** Conteúdo
 
-> [!warning] Atenção
-> Conteúdo
+> **Atenção:** Conteúdo
 ```
 
-#### Wikilinks:
-
-```markdown
-[[Aula 02 - Quick Sort]]
-```
-
-#### Tags:
-
-```markdown
-#estrutura-de-dados #ordenação
-```
+Markdown neutro — compatível com qualquer visualizador.
 
 ---
 
-### 🐙 Adaptador GITHUB
+### 📄 Exportação PDF (disponível para qualquer plataforma)
 
-**Quando usar:** `{{PLATAFORMA}} == "GITHUB"`
+PDF é gerado via `pandoc` a partir dos arquivos `.md` em `conteudos/`, independente da plataforma de estudo escolhida.
 
-#### Callouts:
-
-```markdown
-> **Note**
-> Conteúdo
+```bash
+for f in conteudos/*.md; do
+  pandoc "$f" -o "${f%.md}.pdf" --resource-path=conteudos/imagens
+done
 ```
 
-#### Details/Summary:
-
-```markdown
-<details>
-<summary>Clique para expandir</summary>
-
-Conteúdo oculto
-
-</details>
-```
-
----
-
-### 📄 Adaptador LATEX
-
-**Quando usar:** `{{PLATAFORMA}} == "LATEX"`
-
-#### Estrutura:
-
-```latex
-\documentclass[12pt,a4paper]{article}
-\usepackage[utf8]{inputenc}
-\usepackage{amsmath, amssymb}
-
-\title{{{NOME_DISCIPLINA}}}
-\author{{{INSTITUICAO}}}
-
-\begin{document}
-\maketitle
-[CONTEÚDO]
-\end{document}
-```
-
-#### Callouts:
-
-```latex
-\begin{tcolorbox}[colback=blue!5,title=Nota]
-Conteúdo
-\end{tcolorbox}
-```
+PDFs gerados na mesma pasta dos `.md` correspondentes.
