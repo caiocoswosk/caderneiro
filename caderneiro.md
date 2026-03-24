@@ -33,7 +33,7 @@ nome-da-disciplina/
 | **Transcrever aula** | Converter `capturas/` ou `capturas.pdf` em `transcricao.md` |
 | **Processar aula** | Integrar ao arquivo de tópico qualquer material em `aulas/aula-XX/` — transcrição, PDF, código, imagens ou combinação deles |
 | **Gerar imagens** | Gerar imagens a partir dos prompts nos arquivos `.md` e remover os indicadores de pendência nos conteúdos |
-| **Exportar conteúdo** | Sincronizar `conteudos/` + imagens com a plataforma de estudo (Notion, Obsidian, PDF, GitHub) |
+| **Exportar conteúdo** | Sincronizar `conteudos/` + imagens com a plataforma de estudo (Notion) ou exportar como PDF |
 
 **Onde ficam os cadernos:**
 - **Dentro do caderneiro:** `caderneiro/cadernos/nome-disciplina/` — pasta `cadernos/` está no `.gitignore`; seus cadernos ficam privados

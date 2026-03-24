@@ -8,7 +8,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
 1. **Coletar todas as variáveis** — consultar também `instrucoes/modelos.md` para os níveis de modelo por operação
 2. **Selecionar template base** (Técnico/Teórico/Híbrido) — consultar `instrucoes/templates-base.md`
 3. **Aplicar módulos opcionais** (código, diagramas, exercícios, transcrição, etc.) — consultar `instrucoes/modulos.md`
-4. **Aplicar adaptador de plataforma** (Notion/Obsidian/GitHub/Nenhuma) — consultar `instrucoes/adaptadores-plataforma.md`
+4. **Aplicar adaptador de plataforma** (Notion/Nenhuma) — consultar `instrucoes/adaptadores-plataforma.md`
 5. **Personalizar estilos** (tom, emojis, detalhamento)
 6. **Adaptar ao público-alvo**
 7. **Definir estratégia de arquivos de saída** (todos ficam em `conteudos/`):
@@ -65,7 +65,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    **`instrucoes/gerar-imagens.md`** (sempre gerado):
    - Regras para grafos (prompt destacado), flowcharts (Mermaid) e estruturas de dados
    - Paleta de cores, padrões visuais e estrutura de diretórios de imagens
-   - Instruções para uso do script `gerar-imagens.py`
+   - Instruções para geração de imagens a partir dos prompts
    - Fontes de prompts: transcrição salva em `aulas/aula-XX/prompts/`; processamento salva em `conteudos/prompts/` — gerar-imagens lê de ambas; ambas ignoradas na exportação
 
    **`instrucoes/exportar-conteudo.md`** (sempre gerado):
@@ -78,7 +78,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
        "plataforma": "NOTION",
        "notion": {
          "page_id": "",
-         "token_env": "NOTION_TOKEN"
+         "token_env": "NOTION_MD_SYNC_NOTION_TOKEN"
        }
      }
      ```
@@ -114,6 +114,8 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
 9. **Criar skills individuais** — gerar comandos em `.claude/commands/` e `.opencode/commands/` (conforme `{{FERRAMENTA}}`):
 
    **Menu (`menu.md`)** — ambas ferramentas:
+
+   Se `{{MODULO_TRANSCRICAO}} == true`:
    ```markdown
    Use AskUserQuestion com o texto exato abaixo (não adicione texto antes):
 
@@ -122,6 +124,18 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
       B) ⚙️ Processar aula → execute /processar-aula
       C) 🖼️ Gerar imagens → execute /gerar-imagens
       D) 📤 Exportar conteúdo → execute /exportar-conteudo
+
+   Após a seleção, execute a skill correspondente.
+   ```
+
+   Se `{{MODULO_TRANSCRICAO}} == false`:
+   ```markdown
+   Use AskUserQuestion com o texto exato abaixo (não adicione texto antes):
+
+   Q: "Qual operação deseja realizar?"
+      A) ⚙️ Processar aula → execute /processar-aula
+      B) 🖼️ Gerar imagens → execute /gerar-imagens
+      C) 📤 Exportar conteúdo → execute /exportar-conteudo
 
    Após a seleção, execute a skill correspondente.
    ```
@@ -225,7 +239,7 @@ Exporta o conteúdo de `conteudos/` para o Notion ou gera PDFs via pandoc.
   "plataforma": "NOTION",
   "notion": {
     "page_id": "",
-    "token_env": "NOTION_TOKEN"
+    "token_env": "NOTION_MD_SYNC_NOTION_TOKEN"
   }
 }
 ```

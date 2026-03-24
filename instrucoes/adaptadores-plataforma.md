@@ -30,7 +30,7 @@ Conteúdo que será ocultado/expandível
 #### Fórmulas:
 
 ```markdown
-Inline: $$E = mc^2$$
+Display: $$E = mc^2$$
 ```
 
 ---

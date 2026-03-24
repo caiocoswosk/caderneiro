@@ -13,8 +13,8 @@
 | Período        | {{PERIODO}} |
 | Professor      | {{PROFESSOR}} |
 | Instituição    | {{INSTITUICAO}} |
-| Tipo           | {{TIPO}} |
-| Linguagens     | {{LINGUAGENS}} |
+| Tipo           | {{TIPO_CURSO}} |
+| Linguagens     | — |
 | Público-alvo   | {{PUBLICO_ALVO}} |
 | Plataforma     | {{PLATAFORMA}} |
 | Módulos ativos | {{MODULOS_ATIVOS}} |

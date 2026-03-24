@@ -146,7 +146,7 @@ Armazenar em: {{FORMATO_CALLOUT}} e {{SUPORTE_DIAGRAMAS}}
 
 ---
 
-### 🧩 Seção 4: MÓDULOS OPCIONAIS
+### 🧩 Seção 3: MÓDULOS OPCIONAIS
 
 **Objetivo:** Selecionar componentes adicionais para o plano.
 
@@ -202,7 +202,7 @@ Armazenar em: {{GLOSSARIO_TIPO}}
 | Mídia | Imagens PNG/JPG, vídeos embed, transcrição de áudios |
 | Transcrição | Procedimento 3 etapas, tratamento de visuais, relatório padronizado |
 
-#### 4.8. Módulo de CONSISTÊNCIA NA GERAÇÃO
+#### 3.8. Módulo de CONSISTÊNCIA NA GERAÇÃO
 
 ```
 ✅ Módulo de Consistência na Geração (ativado por padrão)
@@ -223,7 +223,7 @@ Armazenar em: {{GLOSSARIO_TIPO}}
 Armazenar em: `{{MODULO_CONSISTENCIA}}`
 Valores: `true` (padrão) | `false`
 
-#### 4.9. Módulo de TRANSCRIÇÃO DE MATERIAIS MANUSCRITOS
+#### 3.9. Módulo de TRANSCRIÇÃO DE MATERIAIS MANUSCRITOS
 
 ```
 [ ] Incluir Módulo de Transcrição de Materiais Manuscritos
@@ -240,7 +240,7 @@ Valores: `true` (padrão) | `false`
   • Materiais manuscritos digitalizados (PDFs de fotos)
 
 ⚡ Ativado automaticamente quando:
-  • Seção 8 marcou "Fotos de quadro / materiais manuscritos"
+  • Seção 6 marcou "Fotos de quadro / materiais manuscritos"
   • Arquivo capturas.pdf encontrado em aulas/aula-XX/
 ```
 
@@ -326,7 +326,7 @@ Antes de incluir a solução de um exercício:
 
 ---
 
-### 📊 Seção 5: ESTRUTURA DE CONTEÚDO
+### 📊 Seção 4: ESTRUTURA DE CONTEÚDO
 
 **Objetivo:** Definir organização interna da documentação.
 
@@ -343,7 +343,7 @@ Armazenar em: `{{INCLUIR_TABELA_CONTROLE}}`, `{{INCLUIR_OBJETIVOS}}`, `{{INCLUIR
 
 ---
 
-### 🎨 Seção 6: ESTILO E FORMATAÇÃO
+### 🎨 Seção 5: ESTILO E FORMATAÇÃO
 
 **Objetivo:** Personalizar aspectos visuais e de tom.
 
@@ -378,7 +378,7 @@ Valores: `FORMAL|DIDATICO|DIRETO`, `ALTO|MEDIO|BAIXO`, `ESTUDANTE_ACOMPANHANDO|A
 
 ---
 
-### 🗂️ Seção 8: MATERIAIS DE ENTRADA
+### 🗂️ Seção 6: MATERIAIS DE ENTRADA
 
 **Objetivo:** Identificar tipos de arquivos a processar.
 
@@ -459,7 +459,7 @@ sem perguntar novamente — salvo instrução explícita do usuário.
 
 ---
 
-### 🔧 Seção 9: CONFIGURAÇÕES AVANÇADAS
+### 🔧 Seção 7: CONFIGURAÇÕES AVANÇADAS
 
 **Objetivo:** Ajustes finos e preferências especiais.
 
@@ -497,7 +497,7 @@ Armazenar em: {{NIVEL_COMPLEXIDADE}}
 
 ---
 
-### ✅ Seção 10: CONFIRMAÇÃO FINAL
+### ✅ Seção 8: CONFIRMAÇÃO FINAL
 
 **Objetivo:** Revisar e confirmar todas as escolhas.
 

@@ -184,22 +184,13 @@ Lista Encadeada:
 
 **Notion:**
 ```markdown
-$$E = mc^2$$
+Display: $$E = mc^2$$
 ```
 
-**Obsidian:**
+**Nenhuma (Markdown padrão):**
 ```markdown
-$E = mc^2$
-```
-
-**GitHub:**
-```markdown
-$E = mc^2$
-```
-
-**LaTeX:**
-```latex
-$E = mc^2$
+Inline: $E = mc^2$
+Display: $$E = mc^2$$
 ```
 
 ---
@@ -248,7 +239,7 @@ $E = mc^2$
 
 **Quando ativar:** `{{MODULO_TRANSCRICAO}} == true`
 
-**Arquivo de saída:** `aulas/aula-XX/{{ARQUIVO_TRANSCRICAO}}` (padrão: `transcricao.md`)
+**Arquivo de saída:** `aulas/aula-XX/transcricao.md`
 
 **Regras de execução obrigatórias:**
 - O agente **deve saber qual aula transcrever** antes de iniciar. Se o usuário não informou, perguntar: *"Qual aula você deseja transcrever?"*
@@ -322,7 +313,7 @@ Para cada elemento visual encontrado, aplicar `{{TRATAMENTO_VISUAIS_MANUSCRITOS}
 
 **Passo 4 — Geração do arquivo**
 
-Criar (ou sobrescrever) `aulas/aula-XX/{{ARQUIVO_TRANSCRICAO}}` com a estrutura:
+Criar (ou sobrescrever) `aulas/aula-XX/transcricao.md` com a estrutura:
 
 ```markdown
 # Transcrição — Aula XX
@@ -395,7 +386,7 @@ Reescrever o conteúdo com correções aplicadas:
 Reportar ao usuário:
 
 ```
-✅ Transcrição concluída: aulas/aula-XX/{{ARQUIVO_TRANSCRICAO}}
+✅ Transcrição concluída: aulas/aula-XX/transcricao.md
 📄 Páginas processadas: N de M
 ⚠️ Avisos: [reordenações / páginas ignoradas / fusões — ou "Nenhum"]
 🔍 Inconsistências encontradas: N
