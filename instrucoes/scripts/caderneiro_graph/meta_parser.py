@@ -100,6 +100,13 @@ _RE_DEPENDS_ON = re.compile(
 # Os padrões aceitam tanto a forma literal ("FERRAMENTA == X") quanto a
 # sintaxe de template ("{{FERRAMENTA}} == X"), onde "}}" aparece entre
 # o nome da variável e o operador "==".
+# Nomes de arquivo sem extensão reconhecidos como artefatos válidos.
+# Sem esta lista, o filtro de allowlist (sem "/" nem ".") os descartaria silenciosamente.
+_SPECIAL_NAMES = frozenset({
+    "Makefile", "Dockerfile", "LICENSE", "LICENCE",
+    ".gitignore", ".gitattributes", ".env", ".envrc",
+})
+
 _CONDITION_PATTERNS = [
     # Aceita "{{FERRAMENTA}} == CLAUDE_CODE" e "FERRAMENTA == CLAUDE_CODE ou AMBAS".
     # Não exige "ou AMBAS" literalmente pois pode haver backtick entre os tokens.
@@ -204,11 +211,13 @@ def _parse_geracao(
         matches = _RE_BOLD_BACKTICK.findall(line)
         for match in matches:
             path = match.strip()
-            # Filtrar: só paths que parecem arquivos/diretórios do caderno
-            if not any(path.endswith(ext) for ext in (".md", ".json", ".py", "/")):
-                if "/" not in path and "." not in path:
-                    pending_depends.clear()
-                    continue
+            # Filtrar (allowlist): token é artefato se contém "/" (caminho),
+            # tem "." (extensão ou arquivo oculto), ou é nome especial sem extensão
+            # (Makefile, Dockerfile, etc.). Tokens como "true", "COMPLEXO",
+            # "sempre" são descartados por esta condição.
+            if "/" not in path and "." not in path and path not in _SPECIAL_NAMES:
+                pending_depends.clear()
+                continue
 
             condition = _extract_condition(line)
             abs_line = etapa8_line_offset + i
@@ -773,6 +782,17 @@ def parse_meta(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
     - APPLIES_WHEN: Rule → Condition (regra se aplica quando condição é verdadeira)
     - REQUIRES: GeneratedArtifact → GeneratedArtifact (dependência forte)
     - REFERENCES: SourceFile→Script (geracao.md menciona script), GeneratedArtifact→GeneratedArtifact (dependência fraca)
+
+    Nota de arquitetura — redundância intencional de arestas:
+    Cada artefato em geracao.md gera 4–5 arestas (GENERATES + CONTAINS + VALIDATES
+    + APPLIES_WHEN opcional). A redundância é intencional:
+    - CONTAINS é excluído do BFS semântico (graph.py) para evitar que hierarquia
+      estrutural polua análise de impacto. Sem GENERATES, SourceFile não alcançaria
+      GeneratedArtifacts no BFS de impacto via arestas CONTAINS.
+    - VALIDATES (Rule→Artifact) existe para rastreabilidade fina (qual regra cobre
+      qual artefato), e não substitui GENERATES para o BFS de alto nível.
+    Esta redundância não é erro — é trade-off deliberado entre BFS semântico limpo
+    e rastreabilidade estrutural completa. Não simplificar sem rever graph.py.
     """
     all_nodes: list[NodeInfo] = []
     all_edges: list[EdgeInfo] = []

@@ -60,6 +60,15 @@ META_GRAPH_CONFIG: dict = {
     },
     "collapse_kind": "SourceFile",
     "hierarchy_edge": "CONTAINS",
+    # P9: tipos de nó ocultos por padrão na visualização (false = oculto).
+    # Toggle disponível clicando no item da legenda de nós.
+    "node_visibility": {
+        "Rule": False,
+        "Section": False,
+    },
+    # P10: seed para layout D3 determinístico via LCG.
+    # Garante que renders sucessivos produzam o mesmo layout.
+    "simulation_seed": 42,
     "label_visibility": {
         "SourceFile": 0, "_default": 0.4,
     },
@@ -162,6 +171,8 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
   .legend-item { display: flex; align-items: center; gap: 10px; padding: 2px 0; cursor: default; }
   .legend-item[data-edge-kind] { cursor: pointer; user-select: none; }
   .legend-item[data-edge-kind].dimmed { opacity: 0.3; }
+  .legend-item[data-node-kind] { cursor: pointer; user-select: none; }
+  .legend-item[data-node-kind].dimmed { opacity: 0.3; }
   .legend-circle { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .legend-shape { width: 10px; height: 10px; flex-shrink: 0; }
   .legend-line { width: 24px; height: 0; flex-shrink: 0; }
@@ -257,12 +268,16 @@ Object.entries(CFG.edge_cfg).forEach(([k, v]) => {
   Object.entries(CFG.kind_labels).forEach(([kind, label]) => {
     const color = KIND_COLOR[kind] || "#8b949e";
     const shape = KIND_SHAPE[kind];
+    const nodeVis = CFG.node_visibility || {};
+    // Tipos com node_visibility===false são clicáveis para toggle
+    const isToggleable = Object.prototype.hasOwnProperty.call(nodeVis, kind);
+    const attr = isToggleable ? ' data-node-kind="' + kind + '"' : '';
     if (shape === "diamond") {
-      html += '<div class="legend-item"><span class="legend-shape" style="background:' + color + ';transform:rotate(45deg)"></span> ' + label + '</div>';
+      html += '<div class="legend-item"' + attr + '><span class="legend-shape" style="background:' + color + ';transform:rotate(45deg)"></span> ' + label + '</div>';
     } else if (shape === "square") {
-      html += '<div class="legend-item"><span class="legend-shape" style="background:' + color + '"></span> ' + label + '</div>';
+      html += '<div class="legend-item"' + attr + '><span class="legend-shape" style="background:' + color + '"></span> ' + label + '</div>';
     } else {
-      html += '<div class="legend-item"><span class="legend-circle" style="background:' + color + '"></span> ' + label + '</div>';
+      html += '<div class="legend-item"' + attr + '><span class="legend-circle" style="background:' + color + '"></span> ' + label + '</div>';
     }
   });
   html += '</div><h3>Arestas</h3><div class="legend-section">';
@@ -310,6 +325,21 @@ const hiddenEdgeKinds = new Set(["CONTAINS"]);
   const legend = document.getElementById("legend");
   hiddenEdgeKinds.forEach(kind => {
     const el = legend.querySelector('[data-edge-kind="' + kind + '"]');
+    if (el) el.classList.add("dimmed");
+  });
+})();
+
+// hiddenNodeKinds: tipos de nó ocultos por padrão (P9 — node_visibility).
+// Clique no item da legenda de nós para toggle. Rule e Section ocultos por
+// padrão reduzem a densidade visual sem perder informação de alto nível.
+const nodeVisibilityCfg = CFG.node_visibility || {};
+const hiddenNodeKinds = new Set(
+  Object.entries(nodeVisibilityCfg).filter(([, v]) => v === false).map(([k]) => k)
+);
+(function applyInitialDimNodes() {
+  const legend = document.getElementById("legend");
+  hiddenNodeKinds.forEach(kind => {
+    const el = legend.querySelector('[data-node-kind="' + kind + '"]');
     if (el) el.classList.add("dimmed");
   });
 })();
@@ -404,6 +434,21 @@ Object.entries(EDGE_CFG).forEach(([kind, cfg]) => {
   }
 });
 
+// -- Seed determinístico (P10) --
+// D3 usa Math.random() internamente para posições iniciais do force simulation.
+// Sobrescrever com LCG garante que renders sucessivos produzam o mesmo layout.
+// Escopo: apenas esta página (self-contained HTML).
+if (CFG.simulation_seed !== undefined) {
+  (function seedMathRandom(seed) {
+    let s = seed >>> 0;
+    Math.random = function() {
+      // Numerical Recipes LCG: período 2^32, distribuição uniforme [0, 1)
+      s = (Math.imul(1664525, s) + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+  })(CFG.simulation_seed);
+}
+
 // -- Simulation --
 const N = nodes.length;
 const isLarge = N > 200;
@@ -439,7 +484,8 @@ let linkSel, labelSel;
 let showLabels = true;
 
 function updateLinks() {
-  const vis = new Set(nodes.filter(n => !n._hidden).map(n => n.qualified_name));
+  // Nós visíveis: não colapsados E tipo não oculto via node_visibility
+  const vis = new Set(nodes.filter(n => !n._hidden && !hiddenNodeKinds.has(n.kind)).map(n => n.qualified_name));
   const visEdges = edges.filter(e => {
     if (hiddenEdgeKinds.has(e.kind)) return false;
     const s = typeof e.source === "object" ? e.source.qualified_name : e._source;
@@ -489,7 +535,8 @@ function updateNodes() {
   for (const tqn of collapsedTopics) for (const c of allDescendants(tqn)) hiddenSet.add(c);
   nodes.forEach(n => { n._hidden = hiddenSet.has(n.qualified_name); });
 
-  const vis = nodes.filter(n => !n._hidden);
+  // Filtrar também por hiddenNodeKinds (P9 — node_visibility)
+  const vis = nodes.filter(n => !n._hidden && !hiddenNodeKinds.has(n.kind));
   let nodeSel = nodeGroup.selectAll("g.node-g").data(vis, d => d.qualified_name);
   nodeSel.exit().remove();
 
@@ -624,6 +671,17 @@ document.querySelectorAll(".legend-item[data-edge-kind]").forEach(el => {
     if (hiddenEdgeKinds.has(kind)) { hiddenEdgeKinds.delete(kind); this.classList.remove("dimmed"); }
     else { hiddenEdgeKinds.add(kind); this.classList.add("dimmed"); }
     updateLinks();
+  });
+});
+
+// Toggle de tipos de nó via legenda (P9 — node_visibility)
+document.querySelectorAll(".legend-item[data-node-kind]").forEach(el => {
+  el.addEventListener("click", function() {
+    const kind = this.dataset.nodeKind;
+    if (hiddenNodeKinds.has(kind)) { hiddenNodeKinds.delete(kind); this.classList.remove("dimmed"); }
+    else { hiddenNodeKinds.add(kind); this.classList.add("dimmed"); }
+    updateNodes();
+    simulation.alpha(0.3).restart();
   });
 });
 
