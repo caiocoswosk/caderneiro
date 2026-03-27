@@ -22,9 +22,11 @@ META_GRAPH_CONFIG: dict = {
     "kind_color": {
         "SourceFile": "#58a6ff", "GeneratedArtifact": "#3fb950",
         "Script": "#d2a8ff",
+        "Section": "#e3b341", "Rule": "#79c0ff", "Condition": "#ffa657",
     },
     "kind_radius": {
         "SourceFile": 16, "GeneratedArtifact": 8, "Script": 7,
+        "Section": 12, "Rule": 6, "Condition": 5,
     },
     "kind_shape": {
         "Script": "diamond",
@@ -32,20 +34,30 @@ META_GRAPH_CONFIG: dict = {
     "kind_labels": {
         "SourceFile": "Arquivo Fonte", "GeneratedArtifact": "Artefato Gerado",
         "Script": "Script",
+        "Section": "Se\u00e7\u00e3o", "Rule": "Regra", "Condition": "Condi\u00e7\u00e3o",
     },
     "edge_color": {
         "GENERATES": "#3fb950", "CHECKS": "#f0883e", "COPIES": "#d2a8ff",
         "DEFINES_LEVEL": "#f778ba",
+        "CONTAINS": "#555555", "VALIDATES": "#3fb950", "APPLIES_WHEN": "#f778ba",
+        "REQUIRES": "#ff7b72", "REFERENCES": "#8b949e",
     },
     "edge_cfg": {
         "GENERATES":     {"dash": None,  "width": 2,   "opacity": 0.7, "marker": "arrow-generates"},
         "CHECKS":        {"dash": "6,3", "width": 1.5, "opacity": 0.6, "marker": "arrow-checks"},
         "COPIES":        {"dash": "3,4", "width": 1.5, "opacity": 0.6, "marker": "arrow-copies"},
         "DEFINES_LEVEL": {"dash": None,  "width": 1.5, "opacity": 0.6, "marker": "arrow-deflvl"},
+        "CONTAINS":      {"dash": "2,4", "width": 1,   "opacity": 0.3, "marker": "arrow-contains"},
+        "VALIDATES":     {"dash": None,  "width": 1.5, "opacity": 0.6, "marker": "arrow-validates"},
+        "APPLIES_WHEN":  {"dash": "4,3", "width": 1,   "opacity": 0.5, "marker": "arrow-applywhen"},
+        "REQUIRES":      {"dash": None,  "width": 2,   "opacity": 0.7, "marker": "arrow-requires"},
+        "REFERENCES":    {"dash": "5,5", "width": 1.5, "opacity": 0.5, "marker": "arrow-references"},
     },
     "edge_labels": {
         "GENERATES": "Gera", "CHECKS": "Verifica", "COPIES": "Copia",
         "DEFINES_LEVEL": "Define N\u00edvel",
+        "CONTAINS": "Cont\u00e9m", "VALIDATES": "Valida", "APPLIES_WHEN": "Aplica Quando",
+        "REQUIRES": "Requer", "REFERENCES": "Referencia",
     },
     "collapse_kind": "SourceFile",
     "hierarchy_edge": "GENERATES",
@@ -154,6 +166,7 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
   .legend-circle { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .legend-shape { width: 10px; height: 10px; flex-shrink: 0; }
   .legend-line { width: 24px; height: 0; flex-shrink: 0; }
+  .legend-prefix { width: 32px; font-size: 11px; font-weight: 700; color: #79c0ff; flex-shrink: 0; text-align: center; }
 
   #stats-bar {
     position: absolute; bottom: 0; left: 0; right: 0;
@@ -262,11 +275,26 @@ Object.entries(CFG.edge_cfg).forEach(([k, v]) => {
     style += color;
     html += '<div class="legend-item" data-edge-kind="' + kind + '"><span class="legend-line" style="' + style + '"></span> ' + label + '</div>';
   });
+  html += '</div><h3>Prefixos de Regra</h3><div class="legend-section">';
+  html += '<div class="legend-item"><span class="legend-prefix">\u2192</span> Gera o artefato</div>';
+  html += '<div class="legend-item"><span class="legend-prefix">\u2713</span> Verifica o artefato</div>';
+  html += '<div class="legend-item"><span class="legend-prefix">[N\u00edvel]</span> Define n\u00edvel do modelo</div>';
   html += '</div>';
   legend.innerHTML = html;
 })();
 
 function displayName(d) {
+  if (d.kind === "Section" && d.extra && d.extra.title)
+    return d.extra.title;
+  if (d.kind === "Rule" && d.extra) {
+    const rt = d.extra.rule_type;
+    if (rt === "generates") return "\u2192 " + d.name;
+    if (rt === "checks")    return "\u2713 " + d.name;
+    if (rt === "defines_level")
+      return d.name + (d.extra.level ? " [" + d.extra.level + "]" : "");
+  }
+  if (d.kind === "Condition" && d.extra && d.extra.expression)
+    return d.extra.expression;
   return d.name;
 }
 
@@ -276,7 +304,16 @@ const edges = graphData.edges.map(d => ({...d, _source: d.source, _target: d.tar
 const stats = graphData.stats;
 const nodeById = new Map(nodes.map(n => [n.qualified_name, n]));
 
-const hiddenEdgeKinds = new Set();
+// CONTAINS é oculto por padrão — clique no item da legenda para ativar.
+const hiddenEdgeKinds = new Set(["CONTAINS"]);
+// Marcar como dimmed na legenda os kinds ocultos por padrão
+(function applyInitialDim() {
+  const legend = document.getElementById("legend");
+  hiddenEdgeKinds.forEach(kind => {
+    const el = legend.querySelector('[data-edge-kind="' + kind + '"]');
+    if (el) el.classList.add("dimmed");
+  });
+})();
 const collapsedTopics = new Set();
 const containsChildren = new Map();
 const HIERARCHY_EDGE = CFG.hierarchy_edge || "CONTAINS";
@@ -319,6 +356,9 @@ function showTooltip(ev, d) {
   if (d.file_path) h += '<div class="tt-row tt-file">' + escH(d.file_path) + '</div>';
   if (d.line_start != null) h += '<div class="tt-row"><span class="tt-label">Linhas: </span>' + d.line_start + ' \u2013 ' + (d.line_end || d.line_start) + '</div>';
   if (d.extra) {
+    if (d.extra.rule_type) h += '<div class="tt-row"><span class="tt-label">Tipo de regra: </span>' + escH(d.extra.rule_type) + '</div>';
+    if (d.extra.title)     h += '<div class="tt-row"><span class="tt-label">T\u00edtulo: </span>' + escH(d.extra.title) + '</div>';
+    if (d.extra.map_number != null) h += '<div class="tt-row"><span class="tt-label">Entrada #</span>' + d.extra.map_number + '</div>';
     if (d.extra.condition) h += '<div class="tt-row"><span class="tt-label">Condi\u00e7\u00e3o: </span>' + escH(d.extra.condition) + '</div>';
     if (d.extra.operation) h += '<div class="tt-row"><span class="tt-label">Opera\u00e7\u00e3o: </span>' + escH(d.extra.operation) + ' (' + escH(d.extra.level) + ')</div>';
     if (d.extra.role) h += '<div class="tt-row"><span class="tt-label">Papel: </span>' + escH(d.extra.role) + '</div>';
