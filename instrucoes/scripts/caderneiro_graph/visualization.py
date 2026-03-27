@@ -97,7 +97,7 @@ def generate_html(
     """Gera HTML interativo self-contained."""
     output_path = Path(output_path)
     if graph_config is None:
-        graph_config = CONTENT_GRAPH_CONFIG
+        graph_config = META_GRAPH_CONFIG
 
     data = export_graph_data(store)
     data_json = json.dumps(data, default=str, ensure_ascii=False).replace("</", "<\\/")
@@ -318,14 +318,11 @@ function showTooltip(ev, d) {
   h += '<span class="tt-kind" style="background:' + bg + ';color:#0d1117">' + d.kind + '</span>';
   if (d.file_path) h += '<div class="tt-row tt-file">' + escH(d.file_path) + '</div>';
   if (d.line_start != null) h += '<div class="tt-row"><span class="tt-label">Linhas: </span>' + d.line_start + ' \u2013 ' + (d.line_end || d.line_start) + '</div>';
-  if (d.difficulty) h += '<div class="tt-row"><span class="tt-label">Dificuldade: </span>' + escH(d.difficulty) + '</div>';
   if (d.extra) {
-    if (d.extra.definition) h += '<div class="tt-row"><span class="tt-label">Def: </span>' + escH(d.extra.definition) + '</div>';
-    if (d.extra.latex) h += '<div class="tt-row"><span class="tt-label">$$</span> ' + escH(d.extra.latex.substring(0,80)) + '</div>';
-    if (d.extra.study_time) h += '<div class="tt-row"><span class="tt-label">Tempo: </span>' + escH(d.extra.study_time) + '</div>';
     if (d.extra.condition) h += '<div class="tt-row"><span class="tt-label">Condi\u00e7\u00e3o: </span>' + escH(d.extra.condition) + '</div>';
-    if (d.extra.target) h += '<div class="tt-row"><span class="tt-label">Alvo: </span>' + escH(d.extra.target) + '</div>';
     if (d.extra.operation) h += '<div class="tt-row"><span class="tt-label">Opera\u00e7\u00e3o: </span>' + escH(d.extra.operation) + ' (' + escH(d.extra.level) + ')</div>';
+    if (d.extra.role) h += '<div class="tt-row"><span class="tt-label">Papel: </span>' + escH(d.extra.role) + '</div>';
+    if (d.extra.type) h += '<div class="tt-row"><span class="tt-label">Tipo: </span>' + escH(d.extra.type) + '</div>';
   }
   tooltip.innerHTML = h;
   tooltip.classList.add("visible");

@@ -36,6 +36,10 @@ def _qn_script(name: str, file_path: str) -> str:
 # Regex para paths em backticks dentro de bold: **`path`**
 _RE_BOLD_BACKTICK = re.compile(r"\*\*`([^`]+)`")
 
+# Regex para localizar etapas em geracao.md (insensível ao número da etapa)
+_RE_ETAPA_GERAR = re.compile(r"^\d+\.\s+\*\*Gerar os arquivos", re.MULTILINE)
+_RE_ETAPA_CRIAR = re.compile(r"^\d+\.\s+\*\*Criar skills", re.MULTILINE)
+
 # Regex para linhas da tabela do Mapa de Referência
 # | 1 | `CLAUDE.md` | FERRAMENTA == ... | referência | aspectos |
 _RE_MAP_ROW = re.compile(
@@ -91,14 +95,11 @@ def _parse_geracao(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo
         extra={"role": "generator"},
     ))
 
-    # Encontrar Etapa 8 (entre "8. **Gerar" e "9. **Criar")
-    etapa8_start = content.find("8. **Gerar os arquivos")
-    if etapa8_start == -1:
-        # Fallback: procurar por variação
-        etapa8_start = content.find("Gerar os arquivos de contexto")
-    etapa9_start = content.find("9. **Criar skills")
-    if etapa9_start == -1:
-        etapa9_start = len(content)
+    # Encontrar etapa "Gerar os arquivos" e etapa seguinte "Criar skills"
+    m_gerar = _RE_ETAPA_GERAR.search(content)
+    m_criar = _RE_ETAPA_CRIAR.search(content)
+    etapa8_start = m_gerar.start() if m_gerar else -1
+    etapa9_start = m_criar.start() if m_criar else len(content)
 
     etapa8_text = content[etapa8_start:etapa9_start] if etapa8_start != -1 else ""
 

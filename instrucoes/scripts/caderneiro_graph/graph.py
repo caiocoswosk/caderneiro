@@ -1,8 +1,8 @@
-"""SQLite-backed knowledge graph storage para conteúdo acadêmico.
+"""SQLite-backed graph storage — infraestrutura agnóstica de domínio.
 
-Armazena estrutura de cadernos como nós (Topic, Lesson, Concept, Section,
-Exercise, GlossaryTerm, Formula) e arestas (CONTAINS, PREREQUISITE,
-REFERENCES, EVALUATES, EXTENDS, GENERATED_FROM).
+Armazena nós e arestas genéricos via SQLite. Atualmente usado pelo
+meta-grafo estrutural do caderneiro (nós: SourceFile, GeneratedArtifact,
+Script; arestas: GENERATES, CHECKS, COPIES, DEFINES_LEVEL).
 """
 
 from __future__ import annotations
@@ -64,11 +64,9 @@ CREATE INDEX IF NOT EXISTS idx_edges_kind ON edges(kind);
 CREATE INDEX IF NOT EXISTS idx_edges_file ON edges(file_path);
 """
 
-# Tipos de aresta que representam relações semânticas (usadas no BFS).
-# CONTAINS é estrutural e excluída do BFS de impacto.
-_SEMANTIC_EDGE_KINDS = frozenset(
-    {"PREREQUISITE", "REFERENCES", "EVALUATES", "EXTENDS", "GENERATED_FROM"}
-)
+# Tipos de aresta estruturais, excluídos do BFS de impacto.
+# CONTAINS conecta nós de hierarquia (pai→filho) e propaga demais.
+_STRUCTURAL_EDGE_KINDS = frozenset({"CONTAINS"})
 
 
 @dataclass
@@ -447,21 +445,19 @@ class GraphStore:
     # --- Internal helpers ---
 
     def _build_networkx_graph(self) -> nx.DiGraph:
-        """Constrói grafo NetworkX EXCLUINDO arestas CONTAINS (decisão de design 7)."""
+        """Constrói grafo NetworkX excluindo arestas estruturais (CONTAINS)."""
         with self._cache_lock:
             if self._nxg_cache is not None:
                 return self._nxg_cache
             g: nx.DiGraph = nx.DiGraph()
             rows = self._conn.execute("SELECT * FROM edges").fetchall()
             for r in rows:
-                if r["kind"] in _SEMANTIC_EDGE_KINDS:
+                if r["kind"] not in _STRUCTURAL_EDGE_KINDS:
                     g.add_edge(r["source_qualified"], r["target_qualified"], kind=r["kind"])
             self._nxg_cache = g
             return g
 
     def _make_qualified(self, node: NodeInfo) -> str:
-        if node.kind == "Topic":
-            return node.file_path
         if node.parent_name:
             return f"{node.file_path}::{node.parent_name}.{node.name}"
         return f"{node.file_path}::{node.name}"

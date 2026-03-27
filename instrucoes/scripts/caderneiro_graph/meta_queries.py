@@ -24,22 +24,18 @@ def check_consistency(store: GraphStore) -> dict:
 
     generated_paths: set[str] = set(artifacts.keys())
 
-    # Coletar artefatos cobertos por CHECKS (arestas diretas de atualizar-caderno.md)
+    # Coletar todas as arestas em uma única query e separar por tipo
     checked_artifacts: set[str] = set()
     checks_edges = []
+    defines_level_edges = []
+    operations_count = 0
     for edge in store.get_all_edges():
         if edge.kind == "CHECKS":
             target = edge.target_qualified
             if "::" in target:
-                artifact_name = target.split("::", 1)[1]
-                checked_artifacts.add(artifact_name)
+                checked_artifacts.add(target.split("::", 1)[1])
             checks_edges.append(edge)
-
-    # Coletar operações (arestas DEFINES_LEVEL de modelos.md)
-    defines_level_edges = []
-    operations_count = 0
-    for edge in store.get_all_edges():
-        if edge.kind == "DEFINES_LEVEL":
+        elif edge.kind == "DEFINES_LEVEL":
             operations_count += 1
             defines_level_edges.append(edge)
 
@@ -75,7 +71,7 @@ def check_consistency(store: GraphStore) -> dict:
                 if script.file_path.startswith(gen_path.rstrip("/")):
                     covered = True
                     break
-                if script_name.rstrip("/") in gen_path:
+                if gen_path.rstrip("/").endswith("/" + script_name.rstrip("/")):
                     covered = True
                     break
             if script_name == gen_path or script.file_path == gen_path:
