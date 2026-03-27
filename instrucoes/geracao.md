@@ -143,9 +143,14 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
      - Se não fornecida: `| — | — | — | — |` (linha única indicando ausência de ementa)
 
    **`instrucoes/scripts/`** (copiar do caderneiro — não gerar):
-   Copiar os dois scripts do caderneiro raiz (`instrucoes/scripts/`) para o caderno:
-   - `push_notion.py` — exporta `conteudos/` para o Notion
-   - `upload_images_notion.py` — faz upload de imagens para a Notion File Upload API
+   Copiar **todo o conteúdo** de `instrucoes/scripts/` do caderneiro para o caderno, recursivamente.
+   Conteúdo atual:
+   - `push_notion.py` — exporta `conteudos/` para o Notion (apenas se PLATAFORMA == NOTION)
+   - `upload_images_notion.py` — faz upload de imagens (apenas se PLATAFORMA == NOTION)
+   - `caderneiro_graph/` — pacote de grafo de conhecimento acadêmico (sempre)
+
+   > Ao adicionar novos scripts/pacotes a `instrucoes/scripts/`, atualizar esta lista.
+   > A consistência é verificada via `python3 instrucoes/scripts/caderneiro_graph/cli.py meta check`.
 
    **Hints de modelo em cada arquivo de operação gerado:**
    Inserir `<!-- modelo: NIVEL -->` na **primeira linha** de cada arquivo de instrução, conforme a tabela em `instrucoes/modelos.md`:
