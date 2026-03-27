@@ -532,13 +532,20 @@ def _parse_mapa(
 
 
 def _parse_scripts(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
-    """Lista recursivamente instrucoes/scripts/ do filesystem."""
+    """Lista recursivamente instrucoes/scripts/ do filesystem.
+
+    Emite arestas CONTAINS de instrucoes/scripts/ (GeneratedArtifact) para
+    cada Script, modelando a relação estrutural de pertencimento ao diretório.
+    CONTAINS é estrutural e oculto por padrão na visualização.
+    """
     scripts_dir = caderneiro_root / "instrucoes" / "scripts"
     if not scripts_dir.is_dir():
         return [], []
 
     nodes: list[NodeInfo] = []
     edges: list[EdgeInfo] = []
+    # QN do diretório instrucoes/scripts/ como GeneratedArtifact (pai CONTAINS)
+    _scripts_dir_qn = _qn_artifact("instrucoes/scripts/")
 
     for path in sorted(scripts_dir.rglob("*")):
         if path.name.startswith(".") and path.name != ".gitignore":
@@ -564,10 +571,11 @@ def _parse_scripts(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo
                     extra={"type": "directory"},
                 )
                 nodes.append(node)
+                # instrucoes/scripts/ CONTAINS Script (estrutural, oculto por padrão)
                 edges.append(EdgeInfo(
-                    kind="COPIES",
-                    source=_qn_script(path.name + "/", rel_str),
-                    target=_qn_artifact("instrucoes/scripts/"),
+                    kind="CONTAINS",
+                    source=_scripts_dir_qn,
+                    target=_qn_script(path.name + "/", rel_str),
                     file_path=rel_str,
                 ))
             continue
@@ -583,14 +591,55 @@ def _parse_scripts(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo
                 extra={"type": "file"},
             )
             nodes.append(node)
+            # instrucoes/scripts/ CONTAINS Script (estrutural, oculto por padrão)
             edges.append(EdgeInfo(
-                kind="COPIES",
-                source=_qn_script(path.name, rel_str),
-                target=_qn_artifact("instrucoes/scripts/"),
+                kind="CONTAINS",
+                source=_scripts_dir_qn,
+                target=_qn_script(path.name, rel_str),
                 file_path=rel_str,
             ))
 
     return nodes, edges
+
+
+def _parse_script_references(
+    caderneiro_root: Path,
+    script_nodes: list[NodeInfo],
+) -> list[EdgeInfo]:
+    """Cria arestas REFERENCES de geracao.md para Scripts mencionados no texto.
+
+    Detecta menções na forma `nome_do_script` em geracao.md e cria aresta
+    REFERENCES do SourceFile geracao.md para o nó Script correspondente.
+    Conecta Scripts ao grafo semântico, permitindo análise de impacto que
+    alcance Scripts a partir de geracao.md.
+    """
+    geracao_path = caderneiro_root / "instrucoes" / "geracao.md"
+    if not geracao_path.is_file() or not script_nodes:
+        return []
+
+    content = geracao_path.read_text(encoding="utf-8")
+    _GERACAO_FILE = "instrucoes/geracao.md"
+    _ROOT_QN = f"{_GERACAO_FILE}::geracao.md"
+
+    edges: list[EdgeInfo] = []
+    for node in script_nodes:
+        script_qn = f"{node.file_path}::{node.name}"
+        # Buscar `nome` como backtick isolado — não como parte de path completo.
+        # Ex: `caderneiro_graph/` bate em "`caderneiro_graph/`" mas não em
+        # "`instrucoes/scripts/caderneiro_graph/cli.py`".
+        pattern = re.compile(r"`" + re.escape(node.name) + r"`")
+        m = pattern.search(content)
+        if m:
+            line_num = content[:m.start()].count("\n") + 1
+            edges.append(EdgeInfo(
+                kind="REFERENCES",
+                source=_ROOT_QN,
+                target=script_qn,
+                file_path=_GERACAO_FILE,
+                line=line_num,
+            ))
+
+    return edges
 
 
 def _parse_modelos(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
@@ -718,13 +767,12 @@ def parse_meta(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
     Arestas:
     - GENERATES: SourceFile → GeneratedArtifact (geracao.md manda criar)
     - CHECKS: SourceFile → GeneratedArtifact (atualizar-caderno.md verifica)
-    - COPIES: Script → GeneratedArtifact (script é copiado para o caderno)
     - DEFINES_LEVEL: SourceFile → GeneratedArtifact (modelos.md classifica nível)
-    - CONTAINS: SourceFile→Section, Section→Rule (hierarquia estrutural)
+    - CONTAINS: SourceFile→Section, Section→Rule, GeneratedArtifact→Script (hierarquia estrutural)
     - VALIDATES: Rule → GeneratedArtifact (regra exige este artefato)
     - APPLIES_WHEN: Rule → Condition (regra se aplica quando condição é verdadeira)
     - REQUIRES: GeneratedArtifact → GeneratedArtifact (dependência forte)
-    - REFERENCES: GeneratedArtifact → GeneratedArtifact (dependência fraca)
+    - REFERENCES: SourceFile→Script (geracao.md menciona script), GeneratedArtifact→GeneratedArtifact (dependência fraca)
     """
     all_nodes: list[NodeInfo] = []
     all_edges: list[EdgeInfo] = []
@@ -738,8 +786,15 @@ def parse_meta(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
         all_nodes.extend(nodes)
         all_edges.extend(edges)
 
-    # Parsers independentes
-    for parser_fn in [_parse_scripts, _parse_modelos]:
+    # _parse_scripts primeiro para alimentar _parse_script_references
+    script_nodes, script_edges = _parse_scripts(caderneiro_root)
+    all_nodes.extend(script_nodes)
+    all_edges.extend(script_edges)
+
+    # REFERENCES de geracao.md para Scripts mencionados no texto
+    all_edges.extend(_parse_script_references(caderneiro_root, script_nodes))
+
+    for parser_fn in [_parse_modelos]:
         nodes, edges = parser_fn(caderneiro_root)
         all_nodes.extend(nodes)
         all_edges.extend(edges)

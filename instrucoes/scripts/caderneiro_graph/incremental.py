@@ -11,6 +11,39 @@ from .meta_parser import parse_meta
 
 logger = logging.getLogger(__name__)
 
+# Arquivos-fonte do meta-grafo cujo mtime é verificado para rebuild condicional.
+_META_SOURCE_FILES = [
+    "instrucoes/geracao.md",
+    "instrucoes/atualizar-caderno.md",
+    "instrucoes/modelos.md",
+]
+
+
+def needs_meta_rebuild(caderneiro_root: Path, db_path: Path) -> bool:
+    """Retorna True se o meta-grafo precisar de rebuild.
+
+    Compara mtime do banco com mtime dos arquivos-fonte e do diretório scripts/.
+    Um rebuild é necessário quando:
+    - O banco não existe (primeira execução)
+    - Qualquer arquivo-fonte é mais recente que o banco
+    - O diretório instrucoes/scripts/ é mais recente (cobre adição/remoção de scripts)
+    """
+    if not db_path.exists():
+        return True
+
+    db_mtime = db_path.stat().st_mtime
+
+    for rel in _META_SOURCE_FILES:
+        source = caderneiro_root / rel
+        if source.exists() and source.stat().st_mtime > db_mtime:
+            return True
+
+    scripts_dir = caderneiro_root / "instrucoes" / "scripts"
+    if scripts_dir.exists() and scripts_dir.stat().st_mtime > db_mtime:
+        return True
+
+    return False
+
 
 def get_meta_db_path(caderneiro_root: Path) -> Path:
     """Retorna caminho do banco de dados meta, criando diretório se necessário."""

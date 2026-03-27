@@ -19,7 +19,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from caderneiro_graph.graph import GraphStore
-from caderneiro_graph.incremental import get_meta_db_path, meta_full_build
+from caderneiro_graph.incremental import get_meta_db_path, meta_full_build, needs_meta_rebuild
 from caderneiro_graph.meta_queries import (
     check_consistency,
     impact_analysis as meta_impact_analysis,
@@ -42,11 +42,17 @@ def _validate_caderneiro_root(root: Path) -> None:
         sys.exit(1)
 
 
-def _ensure_meta_store(caderneiro_root: Path) -> GraphStore:
-    """Retorna GraphStore para o meta-grafo, sempre reconstruído."""
+def _ensure_meta_store(caderneiro_root: Path, *, force_rebuild: bool = False) -> GraphStore:
+    """Retorna GraphStore para o meta-grafo.
+
+    Reconstrói apenas se os arquivos-fonte foram modificados ou se
+    force_rebuild=True. Use --force-rebuild no CLI para forçar rebuild explícito
+    quando o banco estiver desatualizado por razões não detectadas pelo mtime.
+    """
     db_path = get_meta_db_path(caderneiro_root)
     store = GraphStore(db_path)
-    meta_full_build(caderneiro_root, store)
+    if force_rebuild or needs_meta_rebuild(caderneiro_root, db_path):
+        meta_full_build(caderneiro_root, store)
     return store
 
 
@@ -54,6 +60,7 @@ def cmd_meta(args: argparse.Namespace) -> None:
     caderneiro_root = Path(args.caderno).resolve()
     _validate_caderneiro_root(caderneiro_root)
     meta_cmd = args.meta_command
+    force_rebuild = getattr(args, "force_rebuild", False)
 
     if meta_cmd == "build":
         db_path = get_meta_db_path(caderneiro_root)
@@ -70,7 +77,7 @@ def cmd_meta(args: argparse.Namespace) -> None:
                 print(f"  Erro: {e['file']}: {e['error']}")
 
     elif meta_cmd == "check":
-        with _ensure_meta_store(caderneiro_root) as store:
+        with _ensure_meta_store(caderneiro_root, force_rebuild=force_rebuild) as store:
             result = check_consistency(store)
 
         gaps = result["summary"]["gaps"]
@@ -108,7 +115,7 @@ def cmd_meta(args: argparse.Namespace) -> None:
         if not args.file:
             print("Erro: --file é obrigatório para impact")
             sys.exit(1)
-        with _ensure_meta_store(caderneiro_root) as store:
+        with _ensure_meta_store(caderneiro_root, force_rebuild=force_rebuild) as store:
             results = meta_impact_analysis(store, args.file)
 
         if not results:
@@ -119,7 +126,7 @@ def cmd_meta(args: argparse.Namespace) -> None:
                 print(f"  [{r['relation']}] {r['artifact']}")
 
     elif meta_cmd == "status":
-        with _ensure_meta_store(caderneiro_root) as store:
+        with _ensure_meta_store(caderneiro_root, force_rebuild=force_rebuild) as store:
             report = meta_coverage_report(store)
 
         print("\nMeta-grafo — Cobertura:")
@@ -130,7 +137,7 @@ def cmd_meta(args: argparse.Namespace) -> None:
         print(f"  Gaps total:   {report['overall_gaps']}")
 
     elif meta_cmd == "visualize":
-        with _ensure_meta_store(caderneiro_root) as store:
+        with _ensure_meta_store(caderneiro_root, force_rebuild=force_rebuild) as store:
             output_dir = caderneiro_root / ".caderneiro-graph"
             output_dir.mkdir(exist_ok=True)
             output_path = output_dir / "meta.html"
@@ -167,6 +174,10 @@ def main() -> None:
         help="Subcomando meta",
     )
     p_meta.add_argument("--file", help="Arquivo para análise de impacto (meta impact)")
+    p_meta.add_argument(
+        "--force-rebuild", action="store_true", dest="force_rebuild",
+        help="Forçar rebuild do meta-grafo mesmo se o cache estiver atualizado",
+    )
 
     args = parser.parse_args()
 

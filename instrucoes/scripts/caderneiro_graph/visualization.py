@@ -37,7 +37,7 @@ META_GRAPH_CONFIG: dict = {
         "Section": "Se\u00e7\u00e3o", "Rule": "Regra", "Condition": "Condi\u00e7\u00e3o",
     },
     "edge_color": {
-        "GENERATES": "#3fb950", "CHECKS": "#f0883e", "COPIES": "#d2a8ff",
+        "GENERATES": "#3fb950", "CHECKS": "#f0883e",
         "DEFINES_LEVEL": "#f778ba",
         "CONTAINS": "#555555", "VALIDATES": "#3fb950", "APPLIES_WHEN": "#f778ba",
         "REQUIRES": "#ff7b72", "REFERENCES": "#8b949e",
@@ -45,7 +45,6 @@ META_GRAPH_CONFIG: dict = {
     "edge_cfg": {
         "GENERATES":     {"dash": None,  "width": 2,   "opacity": 0.7, "marker": "arrow-generates"},
         "CHECKS":        {"dash": "6,3", "width": 1.5, "opacity": 0.6, "marker": "arrow-checks"},
-        "COPIES":        {"dash": "3,4", "width": 1.5, "opacity": 0.6, "marker": "arrow-copies"},
         "DEFINES_LEVEL": {"dash": None,  "width": 1.5, "opacity": 0.6, "marker": "arrow-deflvl"},
         "CONTAINS":      {"dash": "2,4", "width": 1,   "opacity": 0.3, "marker": "arrow-contains"},
         "VALIDATES":     {"dash": None,  "width": 1.5, "opacity": 0.6, "marker": "arrow-validates"},
@@ -54,13 +53,13 @@ META_GRAPH_CONFIG: dict = {
         "REFERENCES":    {"dash": "5,5", "width": 1.5, "opacity": 0.5, "marker": "arrow-references"},
     },
     "edge_labels": {
-        "GENERATES": "Gera", "CHECKS": "Verifica", "COPIES": "Copia",
+        "GENERATES": "Gera", "CHECKS": "Verifica",
         "DEFINES_LEVEL": "Define N\u00edvel",
         "CONTAINS": "Cont\u00e9m", "VALIDATES": "Valida", "APPLIES_WHEN": "Aplica Quando",
         "REQUIRES": "Requer", "REFERENCES": "Referencia",
     },
     "collapse_kind": "SourceFile",
-    "hierarchy_edge": "GENERATES",
+    "hierarchy_edge": "CONTAINS",
     "label_visibility": {
         "SourceFile": 0, "_default": 0.4,
     },
