@@ -1,4 +1,4 @@
-"""Dataclasses para nós e arestas do grafo de conhecimento acadêmico."""
+"""Dataclasses para nós e arestas do meta-grafo do caderneiro."""
 
 from __future__ import annotations
 
@@ -8,23 +8,23 @@ from typing import Optional
 
 @dataclass
 class NodeInfo:
-    """Informação de um nó extraído do parser markdown."""
+    """Informação de um nó do grafo."""
 
-    kind: str  # Topic, Lesson, Concept, Section, Exercise, GlossaryTerm, Formula
+    kind: str  # SourceFile, GeneratedArtifact, Script
     name: str
     file_path: str
     line_start: int
     line_end: int
     parent_name: Optional[str] = None
-    difficulty: Optional[str] = None  # Basica, Intermediaria, Avancada
+    difficulty: Optional[str] = None
     extra: dict = field(default_factory=dict)
 
 
 @dataclass
 class EdgeInfo:
-    """Informação de uma aresta extraída do parser markdown."""
+    """Informação de uma aresta do grafo."""
 
-    kind: str  # CONTAINS, PREREQUISITE, REFERENCES, EVALUATES, EXTENDS, GENERATED_FROM
+    kind: str  # GENERATES, CHECKS, COPIES, DEFINES_LEVEL
     source: str  # qualified_name do nó de origem
     target: str  # qualified_name do nó de destino
     file_path: str

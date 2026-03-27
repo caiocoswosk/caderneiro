@@ -1,4 +1,4 @@
-"""Visualização D3.js interativa para o grafo de conhecimento acadêmico.
+"""Visualização D3.js interativa para o meta-grafo do caderneiro.
 
 Gera HTML self-contained com force-directed layout, dark theme,
 zoom, drag, collapse, busca e legenda interativa.
@@ -11,6 +11,52 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .graph import GraphStore, edge_to_dict, node_to_dict
+
+# ---------------------------------------------------------------------------
+# Configurações visuais por tipo de grafo
+# ---------------------------------------------------------------------------
+
+META_GRAPH_CONFIG: dict = {
+    "title": "Meta-Grafo \u2014 Caderneiro",
+    "aria_label": "Meta-grafo estrutural do caderneiro",
+    "kind_color": {
+        "SourceFile": "#58a6ff", "GeneratedArtifact": "#3fb950",
+        "Script": "#d2a8ff",
+    },
+    "kind_radius": {
+        "SourceFile": 16, "GeneratedArtifact": 8, "Script": 7,
+    },
+    "kind_shape": {
+        "Script": "diamond",
+    },
+    "kind_labels": {
+        "SourceFile": "Arquivo Fonte", "GeneratedArtifact": "Artefato Gerado",
+        "Script": "Script",
+    },
+    "edge_color": {
+        "GENERATES": "#3fb950", "CHECKS": "#f0883e", "COPIES": "#d2a8ff",
+        "DEFINES_LEVEL": "#f778ba",
+    },
+    "edge_cfg": {
+        "GENERATES":     {"dash": None,  "width": 2,   "opacity": 0.7, "marker": "arrow-generates"},
+        "CHECKS":        {"dash": "6,3", "width": 1.5, "opacity": 0.6, "marker": "arrow-checks"},
+        "COPIES":        {"dash": "3,4", "width": 1.5, "opacity": 0.6, "marker": "arrow-copies"},
+        "DEFINES_LEVEL": {"dash": None,  "width": 1.5, "opacity": 0.6, "marker": "arrow-deflvl"},
+    },
+    "edge_labels": {
+        "GENERATES": "Gera", "CHECKS": "Verifica", "COPIES": "Copia",
+        "DEFINES_LEVEL": "Define N\u00edvel",
+    },
+    "collapse_kind": "SourceFile",
+    "hierarchy_edge": "GENERATES",
+    "label_visibility": {
+        "SourceFile": 0, "_default": 0.4,
+    },
+    "label_styles": {
+        "SourceFile": {"color": "#e6edf3", "size": "13px", "weight": 700},
+        "_default":   {"color": "#8b949e", "size": "10px", "weight": 400},
+    },
+}
 
 
 def export_graph_data(store: GraphStore) -> dict:
@@ -42,12 +88,27 @@ def export_graph_data(store: GraphStore) -> dict:
     }
 
 
-def generate_html(store: GraphStore, output_path: str | Path) -> Path:
+def generate_html(
+    store: GraphStore,
+    output_path: str | Path,
+    *,
+    graph_config: dict | None = None,
+) -> Path:
     """Gera HTML interativo self-contained."""
     output_path = Path(output_path)
+    if graph_config is None:
+        graph_config = CONTENT_GRAPH_CONFIG
+
     data = export_graph_data(store)
     data_json = json.dumps(data, default=str, ensure_ascii=False).replace("</", "<\\/")
-    html = _HTML_TEMPLATE.replace("__GRAPH_DATA__", data_json)
+    config_json = json.dumps(graph_config, default=str, ensure_ascii=False).replace("</", "<\\/")
+
+    html = _HTML_TEMPLATE
+    html = html.replace("__GRAPH_DATA__", data_json)
+    html = html.replace("__GRAPH_CONFIG__", config_json)
+    html = html.replace("__PAGE_TITLE__", graph_config.get("title", "Grafo"))
+    html = html.replace("__ARIA_LABEL__", graph_config.get("aria_label", "Grafo interativo"))
+
     output_path.write_text(html, encoding="utf-8")
     return output_path
 
@@ -61,7 +122,7 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Grafo de Conhecimento — Caderneiro</title>
+<title>__PAGE_TITLE__</title>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -93,11 +154,6 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
   .legend-circle { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .legend-shape { width: 10px; height: 10px; flex-shrink: 0; }
   .legend-line { width: 24px; height: 0; flex-shrink: 0; }
-  .l-prerequisite { border-top: 2.5px solid #f85149; }
-  .l-references { border-top: 2px dashed #58a6ff; }
-  .l-evaluates { border-top: 2px dotted #d2a8ff; }
-  .l-extends { border-top: 1.5px solid #f0883e; }
-  .l-contains { border-top: 1px solid rgba(139,148,158,0.3); }
 
   #stats-bar {
     position: absolute; bottom: 0; left: 0; right: 0;
@@ -154,58 +210,63 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
 </head>
 <body>
 
-<div id="legend" role="complementary" aria-label="Legenda do grafo">
-  <h3>Tipos de N&oacute;</h3>
-  <div class="legend-section">
-    <div class="legend-item"><span class="legend-circle" style="background:#58a6ff"></span> T&oacute;pico</div>
-    <div class="legend-item"><span class="legend-circle" style="background:#f0883e"></span> Aula</div>
-    <div class="legend-item"><span class="legend-circle" style="background:#3fb950"></span> Conceito</div>
-    <div class="legend-item"><span class="legend-circle" style="background:#56d364"></span> Se&ccedil;&atilde;o</div>
-    <div class="legend-item"><span class="legend-shape" style="background:#d2a8ff;transform:rotate(45deg)"></span> Exerc&iacute;cio</div>
-    <div class="legend-item"><span class="legend-shape" style="background:#8b949e"></span> Gloss&aacute;rio</div>
-    <div class="legend-item"><span class="legend-circle" style="background:#f778ba"></span> F&oacute;rmula</div>
-  </div>
-  <h3>Arestas</h3>
-  <div class="legend-section">
-    <div class="legend-item" data-edge-kind="CONTAINS"><span class="legend-line l-contains"></span> Cont&eacute;m</div>
-    <div class="legend-item" data-edge-kind="PREREQUISITE"><span class="legend-line l-prerequisite"></span> Pr&eacute;-requisito</div>
-    <div class="legend-item" data-edge-kind="REFERENCES"><span class="legend-line l-references"></span> Refer&ecirc;ncia</div>
-    <div class="legend-item" data-edge-kind="EVALUATES"><span class="legend-line l-evaluates"></span> Avalia</div>
-    <div class="legend-item" data-edge-kind="EXTENDS"><span class="legend-line l-extends"></span> Estende</div>
-  </div>
-</div>
+<div id="legend" role="complementary" aria-label="Legenda do grafo"></div>
 
 <div id="controls">
-  <input id="search" type="text" placeholder="Buscar n&oacute;s&#8230;" autocomplete="off" spellcheck="false">
-  <button id="btn-fit" title="Ajustar &agrave; tela">Ajustar</button>
+  <input id="search" type="text" placeholder="Buscar n&#243;s&#8230;" autocomplete="off" spellcheck="false">
+  <button id="btn-fit" title="Ajustar &#224; tela">Ajustar</button>
   <button id="btn-labels" title="Alternar labels" class="active">Labels</button>
 </div>
 
 <div id="stats-bar" role="status"></div>
 <div id="tooltip"></div>
-<svg role="img" aria-label="Grafo de conhecimento acad&ecirc;mico interativo"></svg>
+<svg role="img" aria-label="__ARIA_LABEL__"></svg>
 
 <script>
 const graphData = __GRAPH_DATA__;
+const CFG = __GRAPH_CONFIG__;
 
-// -- Config --
-const KIND_COLOR = {
-  Topic:"#58a6ff", Lesson:"#f0883e", Concept:"#3fb950", Section:"#56d364",
-  Exercise:"#d2a8ff", GlossaryTerm:"#8b949e", Formula:"#f778ba"
-};
-const KIND_RADIUS = {
-  Topic:20, Lesson:12, Concept:8, Section:6, Exercise:6, GlossaryTerm:5, Formula:5
-};
-const EDGE_COLOR = {
-  CONTAINS:"rgba(139,148,158,0.15)", PREREQUISITE:"#f85149",
-  REFERENCES:"#58a6ff", EVALUATES:"#d2a8ff", EXTENDS:"#f0883e",
-  GENERATED_FROM:"#8b949e"
-};
+// -- Config from CFG --
+const KIND_COLOR  = CFG.kind_color;
+const KIND_RADIUS = CFG.kind_radius;
+const KIND_SHAPE  = CFG.kind_shape || {};
+const EDGE_COLOR  = CFG.edge_color;
+
+// Reconstruct EDGE_CFG — marker field stores the ID string; we build url() at render time
+const EDGE_CFG = {};
+Object.entries(CFG.edge_cfg).forEach(([k, v]) => {
+  EDGE_CFG[k] = {dash: v.dash, width: v.width, opacity: v.opacity, marker: v.marker || ""};
+});
+
+// -- Build legend dynamically --
+(function buildLegend() {
+  const legend = document.getElementById("legend");
+  let html = '<h3>Tipos de N\u00f3</h3><div class="legend-section">';
+  Object.entries(CFG.kind_labels).forEach(([kind, label]) => {
+    const color = KIND_COLOR[kind] || "#8b949e";
+    const shape = KIND_SHAPE[kind];
+    if (shape === "diamond") {
+      html += '<div class="legend-item"><span class="legend-shape" style="background:' + color + ';transform:rotate(45deg)"></span> ' + label + '</div>';
+    } else if (shape === "square") {
+      html += '<div class="legend-item"><span class="legend-shape" style="background:' + color + '"></span> ' + label + '</div>';
+    } else {
+      html += '<div class="legend-item"><span class="legend-circle" style="background:' + color + '"></span> ' + label + '</div>';
+    }
+  });
+  html += '</div><h3>Arestas</h3><div class="legend-section">';
+  Object.entries(CFG.edge_labels).forEach(([kind, label]) => {
+    const color = EDGE_COLOR[kind] || "#484f58";
+    const cfg = EDGE_CFG[kind] || {};
+    let style = "border-top:" + (cfg.width || 1.5) + "px ";
+    if (cfg.dash) style += "dashed "; else style += "solid ";
+    style += color;
+    html += '<div class="legend-item" data-edge-kind="' + kind + '"><span class="legend-line" style="' + style + '"></span> ' + label + '</div>';
+  });
+  html += '</div>';
+  legend.innerHTML = html;
+})();
 
 function displayName(d) {
-  if (d.kind === "Topic") {
-    return d.name;
-  }
   return d.name;
 }
 
@@ -218,9 +279,11 @@ const nodeById = new Map(nodes.map(n => [n.qualified_name, n]));
 const hiddenEdgeKinds = new Set();
 const collapsedTopics = new Set();
 const containsChildren = new Map();
+const HIERARCHY_EDGE = CFG.hierarchy_edge || "CONTAINS";
+const COLLAPSE_KIND = CFG.collapse_kind || "Topic";
 
 edges.forEach(e => {
-  if (e.kind === "CONTAINS") {
+  if (e.kind === HIERARCHY_EDGE) {
     if (!containsChildren.has(e._source)) containsChildren.set(e._source, new Set());
     containsChildren.get(e._source).add(e._target);
   }
@@ -242,7 +305,7 @@ function allDescendants(qn) {
 
 // -- Stats bar --
 const statsBar = document.getElementById("stats-bar");
-const si = (l,v) => `<div class="stat-item"><span class="tt-label">${l}</span> <span class="stat-value">${v}</span></div>`;
+const si = (l,v) => '<div class="stat-item"><span class="tt-label">' + l + '</span> <span class="stat-value">' + v + '</span></div>';
 statsBar.innerHTML = si("N\u00f3s", stats.total_nodes) + si("Arestas", stats.total_edges) + si("Arquivos", stats.files_count);
 
 // -- Tooltip --
@@ -251,15 +314,18 @@ function escH(s) { return !s ? "" : String(s).replace(/&/g,"&amp;").replace(/</g
 
 function showTooltip(ev, d) {
   const bg = KIND_COLOR[d.kind] || "#555";
-  let h = `<span class="tt-name">${escH(d.label)}</span>`;
-  h += `<span class="tt-kind" style="background:${bg};color:#0d1117">${d.kind}</span>`;
-  if (d.file_path) h += `<div class="tt-row tt-file">${escH(d.file_path)}</div>`;
-  if (d.line_start != null) h += `<div class="tt-row"><span class="tt-label">Linhas: </span>${d.line_start} \u2013 ${d.line_end || d.line_start}</div>`;
-  if (d.difficulty) h += `<div class="tt-row"><span class="tt-label">Dificuldade: </span>${escH(d.difficulty)}</div>`;
+  let h = '<span class="tt-name">' + escH(d.label) + '</span>';
+  h += '<span class="tt-kind" style="background:' + bg + ';color:#0d1117">' + d.kind + '</span>';
+  if (d.file_path) h += '<div class="tt-row tt-file">' + escH(d.file_path) + '</div>';
+  if (d.line_start != null) h += '<div class="tt-row"><span class="tt-label">Linhas: </span>' + d.line_start + ' \u2013 ' + (d.line_end || d.line_start) + '</div>';
+  if (d.difficulty) h += '<div class="tt-row"><span class="tt-label">Dificuldade: </span>' + escH(d.difficulty) + '</div>';
   if (d.extra) {
-    if (d.extra.definition) h += `<div class="tt-row"><span class="tt-label">Def: </span>${escH(d.extra.definition)}</div>`;
-    if (d.extra.latex) h += `<div class="tt-row"><span class="tt-label">$$</span> ${escH(d.extra.latex.substring(0,80))}</div>`;
-    if (d.extra.study_time) h += `<div class="tt-row"><span class="tt-label">Tempo: </span>${escH(d.extra.study_time)}</div>`;
+    if (d.extra.definition) h += '<div class="tt-row"><span class="tt-label">Def: </span>' + escH(d.extra.definition) + '</div>';
+    if (d.extra.latex) h += '<div class="tt-row"><span class="tt-label">$$</span> ' + escH(d.extra.latex.substring(0,80)) + '</div>';
+    if (d.extra.study_time) h += '<div class="tt-row"><span class="tt-label">Tempo: </span>' + escH(d.extra.study_time) + '</div>';
+    if (d.extra.condition) h += '<div class="tt-row"><span class="tt-label">Condi\u00e7\u00e3o: </span>' + escH(d.extra.condition) + '</div>';
+    if (d.extra.target) h += '<div class="tt-row"><span class="tt-label">Alvo: </span>' + escH(d.extra.target) + '</div>';
+    if (d.extra.operation) h += '<div class="tt-row"><span class="tt-label">Opera\u00e7\u00e3o: </span>' + escH(d.extra.operation) + ' (' + escH(d.extra.level) + ')</div>';
   }
   tooltip.innerHTML = h;
   tooltip.classList.add("visible");
@@ -286,36 +352,34 @@ const zoomBehavior = d3.zoom()
   .on("zoom", ev => { currentTransform = ev.transform; g.attr("transform", ev.transform); updateLabelVisibility(); });
 svg.call(zoomBehavior);
 
-// Arrow markers
+// Arrow markers — generated dynamically from config
 const defs = svg.append("defs");
 const glow = defs.append("filter").attr("id","glow").attr("x","-50%").attr("y","-50%").attr("width","200%").attr("height","200%");
 glow.append("feGaussianBlur").attr("stdDeviation","3").attr("result","blur");
 glow.append("feComposite").attr("in","SourceGraphic").attr("in2","blur").attr("operator","over");
 
-[
-  {id:"arrow-prereq",color:"#f85149"},
-  {id:"arrow-ref",color:"#58a6ff"},
-  {id:"arrow-eval",color:"#d2a8ff"},
-  {id:"arrow-ext",color:"#f0883e"}
-].forEach(mk => {
-  defs.append("marker").attr("id", mk.id)
-    .attr("viewBox","0 -5 10 10").attr("refX",28).attr("refY",0)
-    .attr("markerWidth",8).attr("markerHeight",8).attr("orient","auto")
-    .append("path").attr("d","M0,-4L10,0L0,4Z").attr("fill",mk.color);
+Object.entries(EDGE_CFG).forEach(([kind, cfg]) => {
+  if (cfg.marker) {
+    const color = EDGE_COLOR[kind] || "#484f58";
+    defs.append("marker").attr("id", cfg.marker)
+      .attr("viewBox","0 -5 10 10").attr("refX",28).attr("refY",0)
+      .attr("markerWidth",8).attr("markerHeight",8).attr("orient","auto")
+      .append("path").attr("d","M0,-4L10,0L0,4Z").attr("fill", color);
+  }
 });
 
 // -- Simulation --
 const N = nodes.length;
 const isLarge = N > 200;
-const chargeTopic = isLarge ? -300 : -500;
+const chargeCollapse = isLarge ? -300 : -500;
 const chargeOther = isLarge ? -50 : -100;
 const linkDist = isLarge ? 60 : 100;
 
 const simulation = d3.forceSimulation(nodes)
   .force("link", d3.forceLink(edges).id(d => d.qualified_name)
-    .distance(d => d.kind === "CONTAINS" ? 30 : linkDist)
-    .strength(d => d.kind === "CONTAINS" ? 1.5 : 0.15))
-  .force("charge", d3.forceManyBody().strength(d => d.kind === "Topic" ? chargeTopic : chargeOther).theta(0.85).distanceMax(500))
+    .distance(d => d.kind === HIERARCHY_EDGE ? 30 : linkDist)
+    .strength(d => d.kind === HIERARCHY_EDGE ? 1.5 : 0.15))
+  .force("charge", d3.forceManyBody().strength(d => d.kind === COLLAPSE_KIND ? chargeCollapse : chargeOther).theta(0.85).distanceMax(500))
   .force("collide", d3.forceCollide().radius(d => (KIND_RADIUS[d.kind] || 6) + 3))
   .force("center", d3.forceCenter(W/2, H/2))
   .force("x", d3.forceX(W/2).strength(0.03))
@@ -324,16 +388,10 @@ const simulation = d3.forceSimulation(nodes)
   .velocityDecay(0.4);
 
 // -- Edge styles --
-const EDGE_CFG = {
-  CONTAINS:       {dash:null,  width:0.8, opacity:0.08, marker:""},
-  PREREQUISITE:   {dash:null,  width:2.5, opacity:0.8,  marker:"url(#arrow-prereq)"},
-  REFERENCES:     {dash:"6,3", width:1.5, opacity:0.65, marker:"url(#arrow-ref)"},
-  EVALUATES:      {dash:"3,4", width:1.5, opacity:0.6,  marker:"url(#arrow-eval)"},
-  EXTENDS:        {dash:null,  width:1.2, opacity:0.5,  marker:"url(#arrow-ext)"},
-  GENERATED_FROM: {dash:"2,2", width:1,   opacity:0.4,  marker:""},
-};
-
-function eStyle(d) { return EDGE_CFG[d.kind] || {dash:null,width:1,opacity:0.3,marker:""}; }
+function eStyle(d) {
+  const cfg = EDGE_CFG[d.kind] || {dash:null,width:1,opacity:0.3,marker:""};
+  return {...cfg, markerUrl: cfg.marker ? "url(#" + cfg.marker + ")" : ""};
+}
 function eColor(d) { return EDGE_COLOR[d.kind] || "#484f58"; }
 
 // -- Draw layers --
@@ -361,33 +419,33 @@ function updateLinks() {
     .attr("stroke-width", d => eStyle(d).width)
     .attr("stroke-dasharray", d => eStyle(d).dash)
     .attr("opacity", d => eStyle(d).opacity)
-    .attr("marker-end", d => eStyle(d).marker);
+    .attr("marker-end", d => eStyle(d).markerUrl);
 }
 
-// Node shape helper
+// Node shape helper — driven by CFG.kind_shape
 function drawNodeShape(sel) {
-  // Circles for most types
-  sel.filter(d => !["Exercise","GlossaryTerm"].includes(d.kind))
-    .append("circle").attr("class","node-shape")
-    .attr("r", d => KIND_RADIUS[d.kind] || 6)
-    .attr("fill", d => KIND_COLOR[d.kind] || "#8b949e")
-    .attr("stroke", d => d.kind === "Topic" ? "rgba(88,166,255,0.3)" : "rgba(255,255,255,0.08)")
-    .attr("stroke-width", d => d.kind === "Topic" ? 2 : 1);
-
-  // Diamond for Exercise
-  sel.filter(d => d.kind === "Exercise")
+  // Diamonds
+  sel.filter(d => KIND_SHAPE[d.kind] === "diamond")
     .append("rect").attr("class","node-shape")
     .attr("width", 10).attr("height", 10).attr("x",-5).attr("y",-5)
     .attr("transform","rotate(45)")
-    .attr("fill","#d2a8ff")
+    .attr("fill", d => KIND_COLOR[d.kind] || "#8b949e")
     .attr("stroke","rgba(255,255,255,0.08)").attr("stroke-width",1);
 
-  // Square for GlossaryTerm
-  sel.filter(d => d.kind === "GlossaryTerm")
+  // Squares
+  sel.filter(d => KIND_SHAPE[d.kind] === "square")
     .append("rect").attr("class","node-shape")
     .attr("width", 10).attr("height", 10).attr("x",-5).attr("y",-5)
-    .attr("fill","#8b949e")
+    .attr("fill", d => KIND_COLOR[d.kind] || "#8b949e")
     .attr("stroke","rgba(255,255,255,0.08)").attr("stroke-width",1);
+
+  // Circles (default)
+  sel.filter(d => !KIND_SHAPE[d.kind])
+    .append("circle").attr("class","node-shape")
+    .attr("r", d => KIND_RADIUS[d.kind] || 6)
+    .attr("fill", d => KIND_COLOR[d.kind] || "#8b949e")
+    .attr("stroke", d => d.kind === COLLAPSE_KIND ? "rgba(88,166,255,0.3)" : "rgba(255,255,255,0.08)")
+    .attr("stroke-width", d => d.kind === COLLAPSE_KIND ? 2 : 1);
 }
 
 function updateNodes() {
@@ -401,38 +459,38 @@ function updateNodes() {
 
   const enter = nodeSel.enter().append("g").attr("class","node-g");
 
-  // Topic glow
-  enter.filter(d => d.kind === "Topic").append("circle")
+  // Glow ring for collapsible kind
+  enter.filter(d => d.kind === COLLAPSE_KIND).append("circle")
     .attr("class","glow-ring")
-    .attr("r", d => KIND_RADIUS[d.kind] + 5)
-    .attr("fill","none").attr("stroke","#58a6ff")
+    .attr("r", d => (KIND_RADIUS[d.kind] || 6) + 5)
+    .attr("fill","none").attr("stroke", KIND_COLOR[COLLAPSE_KIND] || "#58a6ff")
     .attr("stroke-width",1.5).attr("opacity",0.3).attr("filter","url(#glow)");
 
   drawNodeShape(enter);
 
   enter
-    .attr("cursor", d => d.kind === "Topic" ? "pointer" : "grab")
+    .attr("cursor", d => d.kind === COLLAPSE_KIND ? "pointer" : "grab")
     .on("mouseover", (ev,d) => { highlightConnected(d,true); showTooltip(ev,d); })
     .on("mousemove", ev => moveTooltip(ev))
     .on("mouseout", (ev,d) => { highlightConnected(d,false); hideTooltip(); })
-    .on("click", (ev,d) => { if (d.kind === "Topic") { ev.stopPropagation(); toggleCollapse(d.qualified_name); }})
+    .on("click", (ev,d) => { if (d.kind === COLLAPSE_KIND) { ev.stopPropagation(); toggleCollapse(d.qualified_name); }})
     .call(d3.drag().on("start",dragS).on("drag",dragD).on("end",dragE));
 
   nodeSel = enter.merge(nodeSel);
 
-  // Labels
+  // Labels — styles from config
+  const labelVis = CFG.label_visibility || {};
+  const labelStyles = CFG.label_styles || {};
+  const defStyle = labelStyles._default || {color:"#8b949e",size:"10px",weight:400};
+
   labelSel = labelGroup.selectAll("text.node-label").data(vis, d => d.qualified_name);
   labelSel.exit().remove();
   const lEnter = labelSel.enter().append("text").attr("class","node-label")
     .attr("text-anchor","start").attr("dy","0.35em")
     .text(d => d.label)
-    .attr("fill", d => {
-      if (d.kind === "Topic") return "#e6edf3";
-      if (d.kind === "Lesson") return "#f0883e";
-      return "#8b949e";
-    })
-    .attr("font-size", d => d.kind === "Topic" ? "13px" : d.kind === "Lesson" ? "11px" : "10px")
-    .attr("font-weight", d => d.kind === "Topic" ? 700 : d.kind === "Lesson" ? 600 : 400);
+    .attr("fill", d => (labelStyles[d.kind] || defStyle).color)
+    .attr("font-size", d => (labelStyles[d.kind] || defStyle).size)
+    .attr("font-weight", d => (labelStyles[d.kind] || defStyle).weight);
   labelSel = lEnter.merge(labelSel);
 
   updateLinks();
@@ -442,12 +500,12 @@ function updateNodes() {
 function updateLabelVisibility() {
   if (!labelSel) return;
   const s = currentTransform.k;
+  const vis = CFG.label_visibility || {};
+  const defThreshold = vis._default !== undefined ? vis._default : 1.2;
   labelSel.attr("display", d => {
     if (!showLabels) return "none";
-    if (d.kind === "Topic") return null;
-    if (d.kind === "Lesson") return s > 0.4 ? null : "none";
-    if (d.kind === "Concept") return s > 0.8 ? null : "none";
-    return s > 1.2 ? null : "none";
+    const threshold = vis[d.kind] !== undefined ? vis[d.kind] : defThreshold;
+    return s > threshold ? null : "none";
   });
 }
 
@@ -494,14 +552,14 @@ simulation.on("tick", () => {
   if (linkSel) linkSel
     .attr("x1", d => d.source.x).attr("y1", d => d.source.y)
     .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
-  nodeGroup.selectAll("g.node-g").attr("transform", d => `translate(${d.x},${d.y})`);
+  nodeGroup.selectAll("g.node-g").attr("transform", d => "translate(" + d.x + "," + d.y + ")");
   if (labelSel) labelSel
     .attr("x", d => d.x + (KIND_RADIUS[d.kind] || 6) + 5)
     .attr("y", d => d.y);
 });
 
-// Start collapsed: only Topic nodes visible
-nodes.forEach(n => { if (n.kind === "Topic") collapsedTopics.add(n.qualified_name); });
+// Start collapsed: only collapsible nodes visible
+nodes.forEach(n => { if (n.kind === COLLAPSE_KIND) collapsedTopics.add(n.qualified_name); });
 updateNodes();
 
 // Auto-fit
