@@ -19,6 +19,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Se não foi fornecida: um arquivo por aula
 8. **Gerar os arquivos de contexto** conforme `{{FERRAMENTA}}`:
 
+   <!-- depends_on: instrucoes/_padroes.md | tipo: REFERENCES -->
    **`CLAUDE.md` (lean, ≤ 100 linhas)** — se `{{FERRAMENTA}} == CLAUDE_CODE` ou `AMBAS`:
    - Contexto da disciplina (nome, professor, instituição, tipo, linguagens, público)
    - Estrutura de arquivos + mapeamento tópico→arquivo
@@ -26,6 +27,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Referência a `instrucoes/_padroes.md`
    - Instrução on-demand: "Para cada operação, leia o arquivo correspondente em `instrucoes/`"
 
+   <!-- depends_on: instrucoes/_padroes.md | tipo: REFERENCES -->
    **`AGENTS.md`** — se `{{FERRAMENTA}} == OPENCODE` ou `AMBAS`:
    - Conteúdo idêntico ao `CLAUDE.md` acima (mesma estrutura, mesmas instruções)
 
@@ -45,10 +47,12 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    - Checklist de qualidade
    - Seção **Modelos Recomendados** — copiar a tabela de tiers de `instrucoes/modelos.md` do caderneiro, incluindo apenas as colunas relevantes à `{{FERRAMENTA}}` (Claude Code e/ou OpenCode). Incluir também as regras de comportamento do agente.
 
+   <!-- depends_on: instrucoes/processar-aula.md | tipo: REFERENCES -->
    **`instrucoes/transcrever-aula.md`** (se `{{MODULO_TRANSCRICAO}} == true`):
    - Procedimento em 3 etapas
    - Configuração de `{{TRATAMENTO_VISUAIS_MANUSCRITOS}}`
 
+   <!-- depends_on: instrucoes/_padroes.md -->
    **`instrucoes/processar-aula.md`** (sempre gerado):
    - Fluxo completo de processamento de aula
    - Usa qualquer material em `aulas/aula-XX/`: `transcricao.md`, PDFs, código, imagens ou combinação
@@ -82,15 +86,19 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
      2. Em "Estrutura de Tópicos", localizar o tópico e adicionar o número da aula em "Aulas Cobertas" (ex: `—` → `01`; `01` → `01, 02`)
      3. Se o tópico não existia (caderno sem ementa): inserir nova linha com emoji + nome + arquivo
 
+   <!-- depends_on: instrucoes/processar-aula.md | tipo: REFERENCES -->
    **`instrucoes/gerar-imagens.md`** (sempre gerado):
    - Regras para grafos (prompt destacado), flowcharts (Mermaid) e estruturas de dados
    - Paleta de cores, padrões visuais e estrutura de diretórios de imagens
    - Instruções para geração de imagens a partir dos prompts
    - Fontes de prompts: transcrição salva em `aulas/aula-XX/prompts/`; processamento salva em `conteudos/prompts/` — gerar-imagens lê de ambas; ambas ignoradas na exportação
 
+   <!-- depends_on: exportar.json -->
    **`instrucoes/exportar-conteudo.md`** (sempre gerado):
    - Procedimento de sincronização com a plataforma de estudo e exportação como PDF
 
+   <!-- depends_on: instrucoes/_padroes.md -->
+   <!-- depends_on: instrucoes/processar-aula.md | tipo: REFERENCES -->
    **`instrucoes/revisar-conteudo.md`** (sempre gerado):
    - Verificação estrutural de todos os arquivos em `conteudos/` contra `instrucoes/_padroes.md`
    - **Passo 0:** listar arquivos `.md` em `conteudos/` (excluir subdiretório `prompts/`); encerrar se vazio
@@ -134,6 +142,7 @@ Quando um usuário completar o questionário, gerar **um conjunto de arquivos** 
    `page_id` fica vazio e é preenchido no primeiro uso.
    > ⚠️ Adicionar `exportar.json` e `.env` ao `.gitignore` do caderno — podem conter tokens sensíveis.
 
+   <!-- depends_on: instrucoes/processar-aula.md | tipo: REFERENCES -->
    **`index.md` (raiz do caderno — copiar de `instrucoes/templates/index.md` e substituir variáveis):**
    - `{{CODIGO_DISCIPLINA}}`: código da disciplina se disponível; omitir a linha se não informado
    - `{{MODULOS_ATIVOS}}`: lista dos módulos habilitados (ex: código, exercícios, transcrição, diagramas)

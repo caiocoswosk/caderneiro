@@ -18,6 +18,8 @@ from .models import EdgeInfo, NodeInfo
 # ---------------------------------------------------------------------------
 # Formato: file_path::name — consistente com GraphStore._make_qualified()
 
+_CONDITIONS_FILE = "_meta_conditions"
+
 
 def _qn_artifact(path: str) -> str:
     """QN de artefato gerado (file_path = instrucoes/geracao.md)."""
@@ -27,6 +29,34 @@ def _qn_artifact(path: str) -> str:
 def _qn_script(name: str, file_path: str) -> str:
     """QN de script do filesystem."""
     return f"{file_path}::{name}"
+
+
+def _qn_section(file_path: str, section_name: str) -> str:
+    """QN de seção dentro de um arquivo-fonte."""
+    return f"{file_path}::{section_name}"
+
+
+def _qn_rule(file_path: str, section_name: str, rule_name: str) -> str:
+    """QN de regra dentro de uma seção (via parent_name)."""
+    return f"{file_path}::{section_name}.{rule_name}"
+
+
+def _qn_condition(expr: str) -> str:
+    """QN de condição deduplicada (normalizada)."""
+    return f"{_CONDITIONS_FILE}::{expr.lower().strip()}"
+
+
+def _make_condition_node(expr: str) -> NodeInfo:
+    """Cria nó Condition deduplicável por expr normalizada."""
+    normalized = expr.lower().strip()
+    return NodeInfo(
+        kind="Condition",
+        name=normalized,
+        file_path=_CONDITIONS_FILE,
+        line_start=0,
+        line_end=0,
+        extra={"expression": expr},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -54,12 +84,25 @@ _RE_OPERATION_ROW = re.compile(
     re.MULTILINE,
 )
 
-# Condições comuns extraídas do texto ao redor de artefatos
+# Regex para anotações de dependência entre artefatos (Fase 2)
+_RE_DEPENDS_ON = re.compile(
+    r"<!--\s*depends_on:\s*([^\s|>]+)"
+    r"(?:\s*\|\s*tipo:\s*(REQUIRES|REFERENCES))?"
+    r"(?:\s*\|\s*quando:\s*([^>]+?))?\s*-->",
+    re.IGNORECASE,
+)
+
+# Condições comuns extraídas do texto ao redor de artefatos.
+# Os padrões aceitam tanto a forma literal ("FERRAMENTA == X") quanto a
+# sintaxe de template ("{{FERRAMENTA}} == X"), onde "}}" aparece entre
+# o nome da variável e o operador "==".
 _CONDITION_PATTERNS = [
-    (re.compile(r"FERRAMENTA\s*==\s*CLAUDE_CODE\s+ou\s+AMBAS", re.I), "FERRAMENTA == CLAUDE_CODE ou AMBAS"),
-    (re.compile(r"FERRAMENTA\s*==\s*OPENCODE\s+ou\s+AMBAS", re.I), "FERRAMENTA == OPENCODE ou AMBAS"),
-    (re.compile(r"MODULO_TRANSCRICAO\s*==\s*true", re.I), "MODULO_TRANSCRICAO == true"),
-    (re.compile(r"PLATAFORMA\s*==\s*NOTION", re.I), "PLATAFORMA == NOTION"),
+    # Aceita "{{FERRAMENTA}} == CLAUDE_CODE" e "FERRAMENTA == CLAUDE_CODE ou AMBAS".
+    # Não exige "ou AMBAS" literalmente pois pode haver backtick entre os tokens.
+    (re.compile(r"FERRAMENTA\s*(?:}})?\s*==\s*CLAUDE_CODE", re.I), "FERRAMENTA == CLAUDE_CODE ou AMBAS"),
+    (re.compile(r"FERRAMENTA\s*(?:}})?\s*==\s*OPENCODE", re.I), "FERRAMENTA == OPENCODE ou AMBAS"),
+    (re.compile(r"MODULO_TRANSCRICAO\s*(?:}})?\s*==\s*true", re.I), "MODULO_TRANSCRICAO == true"),
+    (re.compile(r"PLATAFORMA\s*(?:}})?\s*==\s*NOTION", re.I), "PLATAFORMA == NOTION"),
     (re.compile(r"sempre\s+gerado", re.I), "sempre"),
 ]
 
@@ -72,8 +115,15 @@ def _extract_condition(line: str) -> str:
     return "sempre"
 
 
-def _parse_geracao(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
-    """Parseia geracao.md Etapa 8 para extrair artefatos gerados."""
+def _parse_geracao(
+    caderneiro_root: Path,
+    conditions_seen: dict[str, NodeInfo],
+) -> tuple[list[NodeInfo], list[EdgeInfo]]:
+    """Parseia geracao.md Etapa 8 para extrair artefatos gerados.
+
+    Cria nós Section e Rule além de GeneratedArtifact, e arestas
+    CONTAINS (estrutural), VALIDATES e APPLIES_WHEN (semânticas).
+    """
     geracao_path = caderneiro_root / "instrucoes" / "geracao.md"
     if not geracao_path.is_file():
         return [], []
@@ -103,38 +153,163 @@ def _parse_geracao(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo
 
     etapa8_text = content[etapa8_start:etapa9_start] if etapa8_start != -1 else ""
 
-    # Extrair artefatos do Etapa 8
+    # Número da linha do início da etapa 8 no arquivo completo
+    etapa8_line_offset = content[:etapa8_start].count("\n") + 1 if etapa8_start != -1 else 0
+
+    # Seção "etapa8"
+    _ETAPA8 = "etapa8"
+    _ETAPA8_QN = _qn_section(_GERACAO_FILE, _ETAPA8)
+    nodes.append(NodeInfo(
+        kind="Section",
+        name=_ETAPA8,
+        file_path=_GERACAO_FILE,
+        line_start=etapa8_line_offset,
+        line_end=etapa8_line_offset,
+        extra={"number": "8", "title": "Gerar os arquivos de contexto", "parent_file": _GERACAO_FILE},
+    ))
+    edges.append(EdgeInfo(
+        kind="CONTAINS",
+        source=_ROOT_QN,
+        target=_ETAPA8_QN,
+        file_path=_GERACAO_FILE,
+        line=etapa8_line_offset,
+    ))
+
+    # Extrair artefatos do Etapa 8 — janela deslizante para capturar depends_on
     lines = etapa8_text.split("\n")
+    pending_depends: list[tuple[str, str, str | None]] = []  # (path, tipo, quando)
+
     for i, line in enumerate(lines):
+        # Coletar anotações depends_on antes do artefato (Fase 2)
+        for m in _RE_DEPENDS_ON.finditer(line):
+            dep_path = m.group(1).strip()
+            dep_tipo = (m.group(2) or "REQUIRES").upper()
+            dep_quando = m.group(3).strip() if m.group(3) else None
+            pending_depends.append((dep_path, dep_tipo, dep_quando))
+            # Linha com depends_on não tem artefato — continua
+
         matches = _RE_BOLD_BACKTICK.findall(line)
         for match in matches:
             path = match.strip()
             # Filtrar: só paths que parecem arquivos/diretórios do caderno
             if not any(path.endswith(ext) for ext in (".md", ".json", ".py", "/")):
-                # Verificar se é um path sem extensão mas parece diretório
                 if "/" not in path and "." not in path:
+                    pending_depends.clear()
                     continue
 
             condition = _extract_condition(line)
-            node = NodeInfo(
+            abs_line = etapa8_line_offset + i
+
+            # Nó GeneratedArtifact (mantido por compatibilidade)
+            artifact_node = NodeInfo(
                 kind="GeneratedArtifact",
                 name=path,
-                file_path="instrucoes/geracao.md",
-                line_start=i + 1,
-                line_end=i + 1,
+                file_path=_GERACAO_FILE,
+                line_start=abs_line,
+                line_end=abs_line,
                 extra={"condition": condition, "source_section": "etapa8"},
             )
-            nodes.append(node)
+            nodes.append(artifact_node)
+            artifact_qn = _qn_artifact(path)
+
+            # Aresta GENERATES — atalho de BFS necessário.
+            # CONTAINS é excluído do BFS semântico, portanto sem GENERATES
+            # o nó SourceFile não alcançaria GeneratedArtifacts no BFS de
+            # impacto. VALIDATES (Rule→Artifact) existe para rastreabilidade
+            # fina, mas não substitui GENERATES para o BFS de alto nível.
             edges.append(EdgeInfo(
                 kind="GENERATES",
                 source=_ROOT_QN,
-                target=_qn_artifact(path),
-                file_path="instrucoes/geracao.md",
-                line=i + 1,
+                target=artifact_qn,
+                file_path=_GERACAO_FILE,
+                line=abs_line,
             ))
+
+            # Nó Rule para este artefato
+            rule_node = NodeInfo(
+                kind="Rule",
+                name=path,
+                file_path=_GERACAO_FILE,
+                line_start=abs_line,
+                line_end=abs_line,
+                parent_name=_ETAPA8,
+                extra={"text": line.strip(), "condition": condition, "rule_type": "generates"},
+            )
+            nodes.append(rule_node)
+            rule_qn = _qn_rule(_GERACAO_FILE, _ETAPA8, path)
+
+            # CONTAINS: etapa8 → rule
+            edges.append(EdgeInfo(
+                kind="CONTAINS",
+                source=_ETAPA8_QN,
+                target=rule_qn,
+                file_path=_GERACAO_FILE,
+                line=abs_line,
+            ))
+
+            # VALIDATES: rule → artifact
+            edges.append(EdgeInfo(
+                kind="VALIDATES",
+                source=rule_qn,
+                target=artifact_qn,
+                file_path=_GERACAO_FILE,
+                line=abs_line,
+            ))
+
+            # APPLIES_WHEN: rule → condition (deduplicado).
+            # "sempre" não é emitido: ausência de APPLIES_WHEN já implica
+            # que a rule é sempre ativa — modelar ausência como restrição
+            # explícita é ruído ontológico.
+            if condition != "sempre":
+                cond_qn = _qn_condition(condition)
+                if cond_qn not in conditions_seen:
+                    conditions_seen[cond_qn] = _make_condition_node(condition)
+                edges.append(EdgeInfo(
+                    kind="APPLIES_WHEN",
+                    source=rule_qn,
+                    target=cond_qn,
+                    file_path=_GERACAO_FILE,
+                    line=abs_line,
+                ))
+
+            # Arestas REQUIRES/REFERENCES acumuladas (Fase 2)
+            for dep_path, dep_tipo, dep_quando in pending_depends:
+                dep_extra: dict = {"declared_at_line": abs_line}
+                if dep_quando:
+                    dep_extra["condition"] = dep_quando
+                edges.append(EdgeInfo(
+                    kind=dep_tipo,
+                    source=artifact_qn,
+                    target=_qn_artifact(dep_path),
+                    file_path=_GERACAO_FILE,
+                    line=abs_line,
+                    extra=dep_extra,
+                ))
+            pending_depends = []
 
     # Extrair commands da Etapa 9
     etapa9_text = content[etapa9_start:] if etapa9_start < len(content) else ""
+    etapa9_line_offset = content[:etapa9_start].count("\n") + 1 if etapa9_start < len(content) else 0
+
+    _ETAPA9 = "etapa9"
+    _ETAPA9_QN = _qn_section(_GERACAO_FILE, _ETAPA9)
+    if etapa9_text:
+        nodes.append(NodeInfo(
+            kind="Section",
+            name=_ETAPA9,
+            file_path=_GERACAO_FILE,
+            line_start=etapa9_line_offset,
+            line_end=etapa9_line_offset,
+            extra={"number": "9", "title": "Criar skills individuais", "parent_file": _GERACAO_FILE},
+        ))
+        edges.append(EdgeInfo(
+            kind="CONTAINS",
+            source=_ROOT_QN,
+            target=_ETAPA9_QN,
+            file_path=_GERACAO_FILE,
+            line=etapa9_line_offset,
+        ))
+
     for ext_dir in [".claude/commands/", ".opencode/commands/"]:
         if ext_dir in etapa9_text:
             condition = (
@@ -142,31 +317,75 @@ def _parse_geracao(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo
                 if ".claude" in ext_dir
                 else "FERRAMENTA == OPENCODE ou AMBAS"
             )
-            node = NodeInfo(
+            artifact_node = NodeInfo(
                 kind="GeneratedArtifact",
                 name=ext_dir,
-                file_path="instrucoes/geracao.md",
+                file_path=_GERACAO_FILE,
                 line_start=0,
                 line_end=0,
                 extra={"condition": condition, "source_section": "etapa9"},
             )
-            nodes.append(node)
+            nodes.append(artifact_node)
+            artifact_qn = _qn_artifact(ext_dir)
+
             edges.append(EdgeInfo(
                 kind="GENERATES",
                 source=_ROOT_QN,
-                target=_qn_artifact(ext_dir),
-                file_path="instrucoes/geracao.md",
+                target=artifact_qn,
+                file_path=_GERACAO_FILE,
             ))
+
+            if etapa9_text:
+                rule_node = NodeInfo(
+                    kind="Rule",
+                    name=ext_dir,
+                    file_path=_GERACAO_FILE,
+                    line_start=etapa9_line_offset,
+                    line_end=etapa9_line_offset,
+                    parent_name=_ETAPA9,
+                    extra={"text": ext_dir, "condition": condition, "rule_type": "generates"},
+                )
+                nodes.append(rule_node)
+                rule_qn = _qn_rule(_GERACAO_FILE, _ETAPA9, ext_dir)
+
+                edges.append(EdgeInfo(
+                    kind="CONTAINS",
+                    source=_ETAPA9_QN,
+                    target=rule_qn,
+                    file_path=_GERACAO_FILE,
+                    line=etapa9_line_offset,
+                ))
+                edges.append(EdgeInfo(
+                    kind="VALIDATES",
+                    source=rule_qn,
+                    target=artifact_qn,
+                    file_path=_GERACAO_FILE,
+                    line=etapa9_line_offset,
+                ))
+                cond_qn = _qn_condition(condition)
+                if cond_qn not in conditions_seen:
+                    conditions_seen[cond_qn] = _make_condition_node(condition)
+                edges.append(EdgeInfo(
+                    kind="APPLIES_WHEN",
+                    source=rule_qn,
+                    target=cond_qn,
+                    file_path=_GERACAO_FILE,
+                    line=etapa9_line_offset,
+                ))
 
     return nodes, edges
 
 
-def _parse_mapa(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
+def _parse_mapa(
+    caderneiro_root: Path,
+    conditions_seen: dict[str, NodeInfo],
+) -> tuple[list[NodeInfo], list[EdgeInfo]]:
     """Parseia atualizar-caderno.md para extrair verificações do Mapa de Referência.
 
     Cada linha do Mapa vira uma aresta CHECKS direta de
     atualizar-caderno.md (SourceFile) para o GeneratedArtifact,
     com metadata (número, condição) na aresta.
+    Também cria nós Section, Rule e arestas CONTAINS/VALIDATES/APPLIES_WHEN.
     """
     mapa_path = caderneiro_root / "instrucoes" / "atualizar-caderno.md"
     if not mapa_path.is_file():
@@ -189,6 +408,30 @@ def _parse_mapa(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
         extra={"role": "validator"},
     ))
 
+    # Encontrar posição do Mapa de Referência no arquivo
+    mapa_pos = content.find("Mapa de Referência")
+    if mapa_pos == -1:
+        mapa_pos = 0
+    mapa_line = content[:mapa_pos].count("\n") + 1
+
+    _SECTION = "mapa-de-referencia"
+    _SECTION_QN = _qn_section(_MAPA_FILE, _SECTION)
+    nodes.append(NodeInfo(
+        kind="Section",
+        name=_SECTION,
+        file_path=_MAPA_FILE,
+        line_start=mapa_line,
+        line_end=mapa_line,
+        extra={"title": "Mapa de Referência", "parent_file": _MAPA_FILE},
+    ))
+    edges.append(EdgeInfo(
+        kind="CONTAINS",
+        source=_ROOT_QN,
+        target=_SECTION_QN,
+        file_path=_MAPA_FILE,
+        line=mapa_line,
+    ))
+
     for m in _RE_MAP_ROW.finditer(content):
         num = int(m.group(1))
         target_path = m.group(2).strip()
@@ -200,11 +443,13 @@ def _parse_mapa(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
         if "*" in check_target:
             check_target = check_target.rsplit("/", 1)[0] + "/"
 
-        # Aresta direta: atualizar-caderno.md CHECKS artefato
+        artifact_qn = _qn_artifact(check_target)
+
+        # Aresta direta: atualizar-caderno.md CHECKS artefato (compatibilidade)
         edges.append(EdgeInfo(
             kind="CHECKS",
             source=_ROOT_QN,
-            target=_qn_artifact(check_target),
+            target=artifact_qn,
             file_path=_MAPA_FILE,
             line=line_num,
             extra={
@@ -213,6 +458,52 @@ def _parse_mapa(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
                 "condition": condition,
             },
         ))
+
+        # Nó Rule para esta linha do Mapa
+        rule_node = NodeInfo(
+            kind="Rule",
+            name=check_target,
+            file_path=_MAPA_FILE,
+            line_start=line_num,
+            line_end=line_num,
+            parent_name=_SECTION,
+            extra={"text": target_path, "condition": condition, "rule_type": "checks", "map_number": num},
+        )
+        nodes.append(rule_node)
+        rule_qn = _qn_rule(_MAPA_FILE, _SECTION, check_target)
+
+        # CONTAINS: section → rule
+        edges.append(EdgeInfo(
+            kind="CONTAINS",
+            source=_SECTION_QN,
+            target=rule_qn,
+            file_path=_MAPA_FILE,
+            line=line_num,
+        ))
+
+        # VALIDATES: rule → artifact
+        edges.append(EdgeInfo(
+            kind="VALIDATES",
+            source=rule_qn,
+            target=artifact_qn,
+            file_path=_MAPA_FILE,
+            line=line_num,
+        ))
+
+        # APPLIES_WHEN: rule → condition (deduplicado).
+        # "sempre" não é emitido — ausência de APPLIES_WHEN já implica
+        # que a rule é sempre ativa.
+        if condition.lower().strip() != "sempre":
+            cond_qn = _qn_condition(condition)
+            if cond_qn not in conditions_seen:
+                conditions_seen[cond_qn] = _make_condition_node(condition)
+            edges.append(EdgeInfo(
+                kind="APPLIES_WHEN",
+                source=rule_qn,
+                target=cond_qn,
+                file_path=_MAPA_FILE,
+                line=line_num,
+            ))
 
     return nodes, edges
 
@@ -282,9 +573,10 @@ def _parse_scripts(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo
 def _parse_modelos(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
     """Parseia modelos.md para extrair classificação de nível das operações.
 
-    Cada operação vira uma aresta DEFINES_LEVEL direta de
-    modelos.md (SourceFile) para o GeneratedArtifact correspondente,
-    com metadata (nível) na aresta.
+    Cria Section "operacoes-do-caderno" e Rule nodes para cada operação.
+    DEFINES_LEVEL é mantido do SourceFile (atalho de BFS), e também emitido
+    do Rule para rastreabilidade fina — sem duplicar a contagem em
+    check_consistency, pois esta conta apenas arestas com source==SourceFile.
     """
     modelos_path = caderneiro_root / "instrucoes" / "modelos.md"
     if not modelos_path.is_file():
@@ -311,21 +603,74 @@ def _parse_modelos(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo
     caderno_section = content.find("Operações do Caderno")
     if caderno_section == -1:
         caderno_section = 0
+    section_line = content[:caderno_section].count("\n") + 1 if caderno_section else 0
     search_text = content[caderno_section:]
+
+    # Seção "operacoes-do-caderno"
+    _SECTION = "operacoes-do-caderno"
+    _SECTION_QN = _qn_section(_MODELOS_FILE, _SECTION)
+    nodes.append(NodeInfo(
+        kind="Section",
+        name=_SECTION,
+        file_path=_MODELOS_FILE,
+        line_start=section_line,
+        line_end=section_line,
+        extra={"title": "Operações do Caderno", "parent_file": _MODELOS_FILE},
+    ))
+    edges.append(EdgeInfo(
+        kind="CONTAINS",
+        source=_ROOT_QN,
+        target=_SECTION_QN,
+        file_path=_MODELOS_FILE,
+        line=section_line,
+    ))
 
     for m in _RE_OPERATION_ROW.finditer(search_text):
         name = m.group(1)
         level = m.group(2)
         line_num = content[:caderno_section + m.start()].count("\n") + 1
+        artifact_qn = _qn_artifact(f"instrucoes/{name}.md")
 
-        # Aresta direta: modelos.md DEFINES_LEVEL artefato de instrução
+        # Aresta DEFINES_LEVEL do SourceFile — atalho de BFS e compatibilidade
+        # com check_consistency() que conta arestas DEFINES_LEVEL por kind.
         edges.append(EdgeInfo(
             kind="DEFINES_LEVEL",
             source=_ROOT_QN,
-            target=_qn_artifact(f"instrucoes/{name}.md"),
+            target=artifact_qn,
             file_path=_MODELOS_FILE,
             line=line_num,
             extra={"operation": name, "level": level},
+        ))
+
+        # Nó Rule para esta operação
+        rule_node = NodeInfo(
+            kind="Rule",
+            name=name,
+            file_path=_MODELOS_FILE,
+            line_start=line_num,
+            line_end=line_num,
+            parent_name=_SECTION,
+            extra={"text": name, "level": level, "rule_type": "defines_level"},
+        )
+        nodes.append(rule_node)
+        rule_qn = _qn_rule(_MODELOS_FILE, _SECTION, name)
+
+        # CONTAINS: section → rule
+        edges.append(EdgeInfo(
+            kind="CONTAINS",
+            source=_SECTION_QN,
+            target=rule_qn,
+            file_path=_MODELOS_FILE,
+            line=line_num,
+        ))
+
+        # VALIDATES: rule → artifact (rastreabilidade fina)
+        edges.append(EdgeInfo(
+            kind="VALIDATES",
+            source=rule_qn,
+            target=artifact_qn,
+            file_path=_MODELOS_FILE,
+            line=line_num,
         ))
 
     return nodes, edges
@@ -343,19 +688,40 @@ def parse_meta(caderneiro_root: Path) -> tuple[list[NodeInfo], list[EdgeInfo]]:
     - SourceFile: arquivos-fonte (geracao.md, atualizar-caderno.md, modelos.md)
     - GeneratedArtifact: artefatos que geracao.md manda criar em cadernos
     - Script: arquivos/diretórios em instrucoes/scripts/ (filesystem)
+    - Section: seções dentro de arquivos-fonte (ex: "Etapa 8")
+    - Rule: linhas de regra dentro de seções
+    - Condition: expressões de condição deduplicadas
 
     Arestas:
     - GENERATES: SourceFile → GeneratedArtifact (geracao.md manda criar)
     - CHECKS: SourceFile → GeneratedArtifact (atualizar-caderno.md verifica)
     - COPIES: Script → GeneratedArtifact (script é copiado para o caderno)
     - DEFINES_LEVEL: SourceFile → GeneratedArtifact (modelos.md classifica nível)
+    - CONTAINS: SourceFile→Section, Section→Rule (hierarquia estrutural)
+    - VALIDATES: Rule → GeneratedArtifact (regra exige este artefato)
+    - APPLIES_WHEN: Rule → Condition (regra se aplica quando condição é verdadeira)
+    - REQUIRES: GeneratedArtifact → GeneratedArtifact (dependência forte)
+    - REFERENCES: GeneratedArtifact → GeneratedArtifact (dependência fraca)
     """
     all_nodes: list[NodeInfo] = []
     all_edges: list[EdgeInfo] = []
 
-    for parser_fn in [_parse_geracao, _parse_mapa, _parse_scripts, _parse_modelos]:
+    # Dict compartilhado para deduplicação de nós Condition entre parsers
+    conditions_seen: dict[str, NodeInfo] = {}
+
+    # Parsers que recebem conditions_seen
+    for parser_fn in [_parse_geracao, _parse_mapa]:
+        nodes, edges = parser_fn(caderneiro_root, conditions_seen)
+        all_nodes.extend(nodes)
+        all_edges.extend(edges)
+
+    # Parsers independentes
+    for parser_fn in [_parse_scripts, _parse_modelos]:
         nodes, edges = parser_fn(caderneiro_root)
         all_nodes.extend(nodes)
         all_edges.extend(edges)
+
+    # Adicionar nós Condition deduplicados (file_path = "_meta_conditions")
+    all_nodes.extend(conditions_seen.values())
 
     return all_nodes, all_edges
