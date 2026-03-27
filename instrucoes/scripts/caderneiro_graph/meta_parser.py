@@ -8,10 +8,13 @@ modelos.md classifica por nível.
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 
 from .models import EdgeInfo, NodeInfo
+
+_logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Qualified-name helpers
@@ -63,8 +66,9 @@ def _make_condition_node(expr: str) -> NodeInfo:
 # Source parsers
 # ---------------------------------------------------------------------------
 
-# Regex para paths em backticks dentro de bold: **`path`**
-_RE_BOLD_BACKTICK = re.compile(r"\*\*`([^`]+)`")
+# Regex para paths em backticks dentro de bold: **`path`** ou ** `path`**
+# O espaço opcional entre ** e ` evita falha silenciosa em variações de formatação.
+_RE_BOLD_BACKTICK = re.compile(r"\*\*\s*`([^`]+)`")
 
 # Regex para localizar etapas em geracao.md (insensível ao número da etapa)
 _RE_ETAPA_GERAR = re.compile(r"^\d+\.\s+\*\*Gerar os arquivos", re.MULTILINE)
@@ -151,6 +155,14 @@ def _parse_geracao(
     etapa8_start = m_gerar.start() if m_gerar else -1
     etapa9_start = m_criar.start() if m_criar else len(content)
 
+    if etapa8_start == -1:
+        _logger.warning(
+            "meta_parser: etapa 'Gerar os arquivos' não encontrada em %s — "
+            "nenhum artefato será extraído. Verifique se o heading da etapa "
+            "corresponde ao padrão esperado (ex: '8. **Gerar os arquivos').",
+            _GERACAO_FILE,
+        )
+
     etapa8_text = content[etapa8_start:etapa9_start] if etapa8_start != -1 else ""
 
     # Número da linha do início da etapa 8 no arquivo completo
@@ -178,6 +190,7 @@ def _parse_geracao(
     # Extrair artefatos do Etapa 8 — janela deslizante para capturar depends_on
     lines = etapa8_text.split("\n")
     pending_depends: list[tuple[str, str, str | None]] = []  # (path, tipo, quando)
+    _artifact_count = 0
 
     for i, line in enumerate(lines):
         # Coletar anotações depends_on antes do artefato (Fase 2)
@@ -211,6 +224,7 @@ def _parse_geracao(
             )
             nodes.append(artifact_node)
             artifact_qn = _qn_artifact(path)
+            _artifact_count += 1
 
             # Aresta GENERATES — atalho de BFS necessário.
             # CONTAINS é excluído do BFS semântico, portanto sem GENERATES
@@ -286,6 +300,15 @@ def _parse_geracao(
                     extra=dep_extra,
                 ))
             pending_depends = []
+
+    if _artifact_count == 0 and etapa8_text:
+        _logger.warning(
+            "meta_parser: etapa 'Gerar os arquivos' encontrada em %s mas nenhum "
+            "artefato foi extraído. Verifique se os paths estão no formato "
+            "**`path`** (bold + backtick). O check_consistency reportará "
+            "resultados incorretos.",
+            _GERACAO_FILE,
+        )
 
     # Extrair commands da Etapa 9
     etapa9_text = content[etapa9_start:] if etapa9_start < len(content) else ""

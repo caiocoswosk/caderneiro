@@ -348,10 +348,6 @@ class GraphStore:
                         if neighbor not in visited:
                             next_frontier.add(neighbor)
                             impacted.add(neighbor)
-                    for pred in nxg.predecessors(qn):
-                        if pred not in visited:
-                            next_frontier.add(pred)
-                            impacted.add(pred)
             if len(visited) + len(next_frontier) > max_nodes:
                 break
             frontier = next_frontier
