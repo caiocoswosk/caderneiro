@@ -36,11 +36,19 @@ META_GRAPH_CONFIG: dict = {
         "Script": "Script",
         "Section": "Se\u00e7\u00e3o", "Rule": "Regra", "Condition": "Condi\u00e7\u00e3o",
     },
+    # Regra de consistência visual: arestas de mesma cor (ou cor próxima)
+    # DEVEM ter o mesmo width — caso contrário ficam indistinguíveis quando
+    # a cor é o único diferenciador percebido. A função generate_html()
+    # valida esta invariante e falha com erro explícito se violada.
     "edge_color": {
-        "GENERATES": "#3fb950", "CHECKS": "#f0883e",
-        "DEFINES_LEVEL": "#f778ba",
-        "CONTAINS": "#555555", "VALIDATES": "#3fb950", "APPLIES_WHEN": "#f778ba",
-        "REQUIRES": "#ff7b72", "REFERENCES": "#8b949e",
+        "GENERATES":     "#3fb950",  # verde          — instrução manda criar
+        "CHECKS":        "#f0883e",  # laranja         — Mapa de Referência verifica
+        "DEFINES_LEVEL": "#f778ba",  # rosa            — modelos.md classifica
+        "CONTAINS":      "#555555",  # cinza escuro    — hierarquia estrutural (oculto)
+        "VALIDATES":     "#79c0ff",  # azul claro      — regra cobre artefato
+        "APPLIES_WHEN":  "#e3b341",  # âmbar           — regra ativa sob condição
+        "REQUIRES":      "#ff7b72",  # vermelho        — dependência forte
+        "REFERENCES":    "#8b949e",  # cinza médio     — dependência fraca / menção
     },
     "edge_cfg": {
         "GENERATES":     {"dash": None,  "width": 2,   "opacity": 0.7, "marker": "arrow-generates"},
@@ -108,6 +116,40 @@ def export_graph_data(store: GraphStore) -> dict:
     }
 
 
+def _validate_edge_color_consistency(config: dict) -> None:
+    """Detecta arestas com mesma cor mas larguras diferentes.
+
+    Arestas de mesma cor (ou cor idêntica) com widths distintos são visualmente
+    ambíguas: o olho não distingue a diferença de largura quando a cor já é
+    igual. A regra: cores iguais → mesmo width (ou mude a cor).
+
+    Lança ValueError com diagnóstico se algum conflito for encontrado.
+    """
+    from collections import defaultdict
+
+    by_color: dict[str, list[tuple[str, float]]] = defaultdict(list)
+    edge_color = config.get("edge_color", {})
+    edge_cfg = config.get("edge_cfg", {})
+
+    for kind, color in edge_color.items():
+        width = edge_cfg.get(kind, {}).get("width", 1)
+        by_color[color].append((kind, width))
+
+    conflicts = []
+    for color, entries in by_color.items():
+        widths = {w for _, w in entries}
+        if len(widths) > 1:
+            detail = ", ".join(f"{k}(width={w})" for k, w in entries)
+            conflicts.append(f"  cor {color}: {detail}")
+
+    if conflicts:
+        raise ValueError(
+            "Conflito de configuração visual em edge_color/edge_cfg — "
+            "arestas de mesma cor com widths diferentes causam ambiguidade.\n"
+            "Use cores distintas ou iguale o width:\n" + "\n".join(conflicts)
+        )
+
+
 def generate_html(
     store: GraphStore,
     output_path: str | Path,
@@ -118,6 +160,8 @@ def generate_html(
     output_path = Path(output_path)
     if graph_config is None:
         graph_config = META_GRAPH_CONFIG
+
+    _validate_edge_color_consistency(graph_config)
 
     data = export_graph_data(store)
     data_json = json.dumps(data, default=str, ensure_ascii=False).replace("</", "<\\/")
