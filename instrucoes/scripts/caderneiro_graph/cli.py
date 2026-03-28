@@ -145,6 +145,17 @@ def cmd_meta(args: argparse.Namespace) -> None:
 
         print(f"Visualização meta gerada: {output_path}")
 
+    elif meta_cmd == "generate":
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "meta_generate",
+            _SCRIPTS_DIR / "meta_generate.py",
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        dry_run = getattr(args, "dry_run", False)
+        sys.exit(mod.generate(caderneiro_root, dry_run=dry_run, verbose=args.verbose))
+
 
 # ---------------------------------------------------------------------------
 # Main
@@ -170,13 +181,17 @@ def main() -> None:
     p_meta = subparsers.add_parser("meta", help="Meta-grafo do caderneiro (consistência estrutural)")
     p_meta.add_argument(
         "meta_command",
-        choices=["build", "check", "impact", "status", "visualize"],
+        choices=["build", "check", "impact", "status", "visualize", "generate"],
         help="Subcomando meta",
     )
     p_meta.add_argument("--file", help="Arquivo para análise de impacto (meta impact)")
     p_meta.add_argument(
         "--force-rebuild", action="store_true", dest="force_rebuild",
         help="Forçar rebuild do meta-grafo mesmo se o cache estiver atualizado",
+    )
+    p_meta.add_argument(
+        "--dry-run", action="store_true", dest="dry_run",
+        help="Mostrar diff sem modificar arquivos (meta generate)",
     )
 
     args = parser.parse_args()

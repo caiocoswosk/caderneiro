@@ -32,3 +32,31 @@ Ao planejar ou implementar alterações em `instrucoes/` (scripts, templates, ge
 4. Se adicionou novos scripts/pacotes em `instrucoes/scripts/`, atualize `geracao.md` Etapa 8
 
 O usuário também pode solicitar a verificação a qualquer momento.
+
+## Workflow de Atualização Estrutural (SSoT)
+
+Ao adicionar ou remover operações do caderno (que afetam `modelos.md`,
+`atualizar-caderno.md` e `geracao.md`):
+
+1. **Criar branch:**
+   ```
+   git checkout -b meta/add-{nome-operacao}
+   ```
+2. **Editar `instrucoes/meta-schema.yaml`** — adicionar/remover entrada da operação
+3. **Executar geração (A3 embutido):**
+   ```
+   python3 instrucoes/scripts/caderneiro_graph/cli.py --caderno . meta generate
+   ```
+   Se falhar: corrigir o schema e repetir. Não commitar com gaps.
+4. **Atualizar `instrucoes/geracao.md` manualmente** — adicionar entrada
+   `` **`instrucoes/{nome}.md`** `` na Etapa 8 se for operação nova
+5. **Commit atômico** (apenas se `meta check` passar):
+   ```
+   git add instrucoes/meta-schema.yaml instrucoes/modelos.md \
+           instrucoes/atualizar-caderno.md instrucoes/geracao.md
+   git commit -m "meta: add operacao {nome}"
+   ```
+6. **Rollback** se qualquer etapa falhar:
+   ```
+   git checkout master && git branch -D meta/add-{nome-operacao}
+   ```
