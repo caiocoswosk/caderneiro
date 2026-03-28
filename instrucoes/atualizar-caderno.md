@@ -50,15 +50,20 @@ Iterar cada linha do **Mapa de Referência** abaixo. Para cada linha cuja **Cond
 | 3 | `opencode.json` | FERRAMENTA == OPENCODE ou AMBAS | `geracao.md` Etapa 8, seção "opencode.json" | (a) Estrutura JSON válida; (b) Campo `instructions` contém `_padroes.md` |
 | 4 | `index.md` | sempre | `instrucoes/templates/index.md` do caderneiro | (a) Seções obrigatórias: Configuração, Estrutura de Tópicos, Registro de Aulas; (b) Tabela de tópicos coerente com arquivos em `conteudos/` |
 | 5 | `instrucoes/_padroes.md` | sempre | `geracao.md` Etapa 8 "_padroes.md" + `templates-base.md` (template do tipo da disciplina) | (a) Seções do template base correspondentes ao tipo; (b) Módulos ativos refletidos; (c) Seção "Modelos Recomendados" presente; (d) Checklist de qualidade presente |
-| 6 | `instrucoes/processar-aula.md` | sempre | `geracao.md` Etapa 8 "processar-aula.md" | (a) `<!-- modelo: COMPLEXO -->` na 1ª linha; (b) Metadata por aula (📅 Data, ⏱️ Tempo, 📊 Dificuldade); (c) Introdução do arquivo de conteúdo (tempo total + sumário); (d) Atualização de `index.md` ao final; (e) Módulos ativos refletidos |
-| 7 | `instrucoes/gerar-imagens.md` | sempre | `geracao.md` Etapa 8 "gerar-imagens.md" | (a) `<!-- modelo: SIMPLES -->` na 1ª linha; (b) Fontes de prompts: `aulas/aula-XX/prompts/` e `conteudos/prompts/`; (c) Regras por tipo de diagrama (grafos, flowcharts, estruturas) |
-| 8 | `instrucoes/exportar-conteudo.md` | sempre | `geracao.md` Etapa 8 "exportar-conteudo.md" + seção "Referência: Exportar Conteúdo" | (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) Opções corretas para a PLATAFORMA; (c) Fluxo Notion completo se aplicável (setup, upload imagens, push via script) |
-| 9 | `instrucoes/transcrever-aula.md` | módulo transcrição ativo | `geracao.md` Etapa 8 "transcrever-aula.md" | (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) 3 etapas presentes (transcrever → verificar → corrigir); (c) Configuração de tratamento de visuais |
+<!-- meta-generate:mapa:1:start -->
+| 6 | `instrucoes/processar-aula.md` | sempre | `geracao.md Etapa 8 "processar-aula.md"` | (a) `<!-- modelo: COMPLEXO -->` na 1ª linha; (b) Metadata por aula (📅 Data, ⏱️ Tempo, 📊 Dificuldade); (c) Introdução do arquivo de conteúdo (tempo total + sumário); (d) Atualização de `index.md` ao final; (e) Módulos ativos refletidos |
+| 7 | `instrucoes/gerar-imagens.md` | sempre | `geracao.md Etapa 8 "gerar-imagens.md"` | (a) `<!-- modelo: SIMPLES -->` na 1ª linha; (b) Fontes de prompts: `aulas/aula-XX/prompts/` e `conteudos/prompts/`; (c) Regras por tipo de diagrama (grafos, flowcharts, estruturas) |
+| 8 | `instrucoes/exportar-conteudo.md` | sempre | `geracao.md Etapa 8 "exportar-conteudo.md" + seção "Referência: Exportar Conteúdo"` | (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) Opções corretas para a PLATAFORMA; (c) Fluxo Notion completo se aplicável (setup, upload imagens, push via script) |
+| 9 | `instrucoes/transcrever-aula.md` | MODULO_TRANSCRICAO == true | `geracao.md Etapa 8 "transcrever-aula.md"` | (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) 3 etapas presentes (transcrever → verificar → corrigir); (c) Configuração de tratamento de visuais |
+<!-- meta-generate:mapa:1:end -->
 | 10 | `.claude/commands/*.md` | FERRAMENTA == CLAUDE_CODE ou AMBAS | `geracao.md` Etapa 9, seção "Skills individuais" | (a) Todos os commands esperados existem (menu + um por operação ativa); (b) Conteúdo de cada command segue template (verificação de modelo usa "diferente", leitura do arquivo de operação); (c) Menu lista todas as operações ativas |
 | 11 | `.opencode/commands/*.md` | FERRAMENTA == OPENCODE ou AMBAS | `geracao.md` Etapa 9, seção "Skills individuais" | Idem linha 10, com frontmatter `description` e `/models` em vez de `/model` |
-| 12 | `instrucoes/scripts/*.py` | PLATAFORMA == NOTION | `instrucoes/scripts/` do caderneiro (comparar conteúdo) | (a) `push_notion.py` existe; (b) `upload_images_notion.py` existe; (c) Conteúdo idêntico ao caderneiro |
+| 12 | `instrucoes/scripts/` | sempre | `instrucoes/scripts/` do caderneiro (comparar recursivamente) | (a) Listar recursivamente `instrucoes/scripts/` do caderneiro; (b) Para cada arquivo/subdiretório: verificar existência no caderno e conteúdo idêntico (hash); (c) Arquivos exclusivos do Notion (`push_notion.py`, `upload_images_notion.py`): ausência OK se PLATAFORMA != NOTION; (d) Demais arquivos/pacotes: ausência = AUSENTE |
 | 13 | `exportar.json` | sempre | `geracao.md` Etapa 8 "exportar.json" | (a) Existe; (b) Estrutura corresponde à PLATAFORMA configurada |
-| 14 | `instrucoes/revisar-conteudo.md` | sempre | `geracao.md` Etapa 8 "revisar-conteudo.md" | (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) 5 aspectos de verificação presentes (intro, metadata, seções, exercícios, emoji); (c) fluxo de resolução com AskUserQuestion; (d) nota sobre troca para COMPLEXO no re-processamento |
+<!-- meta-generate:mapa:2:start -->
+| 14 | `instrucoes/revisar-conteudo.md` | sempre | `geracao.md Etapa 8 "revisar-conteudo.md"` | (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) 5 aspectos de verificação presentes (intro, metadata, seções, exercícios, emoji); (c) fluxo de resolução com AskUserQuestion; (d) nota sobre troca para COMPLEXO no re-processamento |
+<!-- meta-generate:mapa:2:end -->
+| 15 | — (meta-verificação) | sempre | `caderneiro_graph meta check` | Executar `python3 instrucoes/scripts/caderneiro_graph/cli.py --caderno . meta check` na raiz do caderneiro. Se reportar gaps (artefatos sem cobertura no Mapa, scripts não listados em geracao.md), registrar como `AVISO: Mapa de Referência desatualizado` com detalhes do gap |
 
 ---
 
@@ -71,7 +76,7 @@ Identificar arquivos presentes no caderno que não pertencem à estrutura espera
 - Raiz: `CLAUDE.md`, `AGENTS.md`, `opencode.json`, `index.md`, `exportar.json`, `.gitignore`, `README.md`
 - Se PLATAFORMA == NOTION: adicionar `.env`, `.env.example`
 - Diretórios a ignorar: `aulas/`, `conteudos/`, `.git/`, `.claude/`, `.opencode/`
-- `instrucoes/`: conjunto do Mapa de Referência (Passo 2) + `scripts/` se PLATAFORMA == NOTION
+- `instrucoes/`: conjunto do Mapa de Referência (Passo 2) + `scripts/`
 
 **Procedimento de listagem:**
 

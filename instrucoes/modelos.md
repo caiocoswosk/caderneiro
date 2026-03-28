@@ -110,11 +110,13 @@ Se o modelo ativo não se encaixa em nenhuma família acima:
 
 | Operação | Nível | Justificativa |
 |----------|-------|---------------|
-| transcrever-aula | MEDIO | OCR/leitura de imagens, estruturação |
+<!-- meta-generate:modelos:start -->
 | processar-aula | COMPLEXO | Integra múltiplos materiais, cria conteúdo educacional |
 | gerar-imagens | SIMPLES | Gera prompts a partir de templates |
 | exportar-conteudo | MEDIO | Conversão de plataforma, chamadas API |
+| transcrever-aula | MEDIO | OCR/leitura de imagens, estruturação |
 | revisar-conteudo | MEDIO | Verificação estrutural de conteúdos gerados, re-processamento delegado |
+<!-- meta-generate:modelos:end -->
 
 ---
 
