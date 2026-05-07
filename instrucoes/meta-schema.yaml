@@ -1,0 +1,71 @@
+# Schema canônico das operações do caderno.
+# Fonte única de verdade (SSoT) para meta_generate.py.
+# Modificar aqui, depois executar: meta generate
+
+operacoes:
+  - nome: processar-aula
+    nivel: COMPLEXO
+    artefato: instrucoes/processar-aula.md
+    condicao: sempre
+    justificativa: "Integra múltiplos materiais, cria conteúdo educacional"
+    mapa_block: 1
+    map_number: 6
+    geracao_reference: 'geracao.md Etapa 8 "processar-aula.md"'
+    map_aspects: >-
+      (a) `<!-- modelo: COMPLEXO -->` na 1ª linha; (b) Metadata por aula
+      (📅 Data, ⏱️ Tempo, 📊 Dificuldade); (c) Introdução do arquivo de
+      conteúdo (tempo total + sumário); (d) Atualização de `index.md` ao
+      final; (e) Módulos ativos refletidos
+
+  - nome: gerar-imagens
+    nivel: SIMPLES
+    artefato: instrucoes/gerar-imagens.md
+    condicao: sempre
+    justificativa: "Gera prompts a partir de templates"
+    mapa_block: 1
+    map_number: 7
+    geracao_reference: 'geracao.md Etapa 8 "gerar-imagens.md"'
+    map_aspects: >-
+      (a) `<!-- modelo: SIMPLES -->` na 1ª linha; (b) Fontes de prompts:
+      `aulas/aula-XX/prompts/` e `conteudos/prompts/`; (c) Regras por tipo
+      de diagrama (grafos, flowcharts, estruturas)
+
+  - nome: exportar-conteudo
+    nivel: MEDIO
+    artefato: instrucoes/exportar-conteudo.md
+    condicao: sempre
+    justificativa: "Conversão de plataforma, chamadas API"
+    mapa_block: 1
+    map_number: 8
+    geracao_reference: 'geracao.md Etapa 8 "exportar-conteudo.md" + seção "Referência: Exportar Conteúdo"'
+    map_aspects: >-
+      (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) Opções corretas para a
+      PLATAFORMA; (c) Fluxo Notion completo se aplicável (setup, upload
+      imagens, push via script)
+
+  - nome: transcrever-aula
+    nivel: MEDIO
+    artefato: instrucoes/transcrever-aula.md
+    condicao: "MODULO_TRANSCRICAO == true"
+    justificativa: "OCR/leitura de imagens, estruturação"
+    mapa_block: 1
+    map_number: 9
+    geracao_reference: 'geracao.md Etapa 8 "transcrever-aula.md"'
+    map_aspects: >-
+      (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) 3 etapas presentes
+      (transcrever → verificar → corrigir); (c) Configuração de tratamento
+      de visuais
+
+  - nome: revisar-conteudo
+    nivel: MEDIO
+    artefato: instrucoes/revisar-conteudo.md
+    condicao: sempre
+    justificativa: "Verificação estrutural de conteúdos gerados, re-processamento delegado"
+    mapa_block: 2
+    map_number: 14
+    geracao_reference: 'geracao.md Etapa 8 "revisar-conteudo.md"'
+    map_aspects: >-
+      (a) `<!-- modelo: MEDIO -->` na 1ª linha; (b) 5 aspectos de
+      verificação presentes (intro, metadata, seções, exercícios, emoji);
+      (c) fluxo de resolução com AskUserQuestion; (d) nota sobre troca para
+      COMPLEXO no re-processamento
